@@ -1,0 +1,13 @@
+﻿  main.cpp
+C:\Users\usrlocal\Downloads\tests\testsCpp\testsCpp\TrameInterpret.h(70,34): error C2011: 'tagPTPJump2Params' : redéfinition du type 'struct'
+C:\Users\usrlocal\Downloads\tests\testsCpp\testsCpp\TrameInterpret.h(6): message : voir la déclaration de 'tagPTPJump2Params'
+  TrameInterpret.cpp
+C:\Users\usrlocal\Downloads\tests\testsCpp\testsCpp\TrameInterpret.h(70,34): error C2011: 'tagPTPJump2Params' : redéfinition du type 'struct'
+C:\Users\usrlocal\Downloads\tests\testsCpp\testsCpp\TrameInterpret.h(6): message : voir la déclaration de 'tagPTPJump2Params'
+C:\Users\usrlocal\Downloads\tests\testsCpp\testsCpp\TrameInterpret.cpp(14,1): warning C4005: 'GetPTPJointParams' : redéfinition de macro
+C:\Users\usrlocal\Downloads\tests\testsCpp\testsCpp\TrameInterpret.cpp(11): message : voir la définition précédente de 'GetPTPJointParams'
+C:\Users\usrlocal\Downloads\tests\testsCpp\testsCpp\TrameInterpret.cpp(25,2): error C2065: 'Case' : identificateur non déclaré
+C:\Users\usrlocal\Downloads\tests\testsCpp\testsCpp\TrameInterpret.cpp(25,7): error C2146: erreur de syntaxe : absence de ';' avant l'identificateur 'GetHO'
+C:\Users\usrlocal\Downloads\tests\testsCpp\testsCpp\TrameInterpret.cpp(25,7): error C2065: 'GetHO' : identificateur non déclaré
+C:\Users\usrlocal\Downloads\tests\testsCpp\testsCpp\TrameInterpret.cpp(27,2): error C2146: erreur de syntaxe : absence de ';' avant l'identificateur 'default'
+  Génération de code en cours...
