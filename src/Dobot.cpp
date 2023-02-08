@@ -6,8 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-uint64_t param;
-uint64_t param246Precedent;
+
 
 
 Dobot::Dobot(DobotNumber number){
@@ -37,6 +36,8 @@ void Dobot::ProtocolInit(){
 
 void Dobot::ProtocolProcess(){
     Message message;
+
+
     MessageProcess(&_gSerialProtocolHandler);
 
     if (RingBufferGetCount(&_gSerialProtocolHandler.txRawByteQueue)) {
@@ -47,7 +48,7 @@ void Dobot::ProtocolProcess(){
         }
         if(MessageRead(&_gSerialProtocolHandler, &message)==ProtocolNoError){
             #if 1
-            
+            if(message.id==0) return; //ca bug si on fait pas return potentielmement probleme reglé / on peut l'enlever
             if(    message.id == 246 
                 || message.id == ProtocolJOGCommonParams 
                 || message.id == ProtocolJOGCoordinateParams
@@ -59,12 +60,13 @@ void Dobot::ProtocolProcess(){
             }
 
             if((message.id==246 && param246Precedent != param) || message.id!=246) {
-                printf("Rx message: id : %d, param : ", message.id);
+                printf("DOBOT %d : Rx message : [id : %d, param : ", _number, message.id);
                 for(int i=0; i<message.paramsLen; i++)
                 {
                     printf("%02x ", message.params[i]);
+                    if(i>20) printf("message param len : %d + message.id : %d\n", message.paramsLen, message.id);
                 }
-                printf("\n");
+                printf("]\n");
             }
 
             if(message.id == 246) {
@@ -74,14 +76,15 @@ void Dobot::ProtocolProcess(){
                 }
                 for (int i = 0; i <= index; i++)
                 {
-                    printf("==%d : termine !\n",instructionsQueue[0]);
+                    //printf("  instruction queue len : %d\n", instructionsQueue.size());
+                    printf("==%08x : termine !\n",instructionsQueue[0]);
                     instructionsQueue.erase(instructionsQueue.begin());
+                    if(available()) printf("//DOBOT %d PRET\n",_number);
                 }
                 
                 
             } else{
                 instructionsQueue.push_back(param);
-                printf("instruction queue len : %d\n", instructionsQueue.size());
             }
 
             param246Precedent = param;
@@ -146,10 +149,9 @@ void Dobot::InitRam(){
 ** Function name:       SetEndEffectorParams
 ** Descriptions:        Set end effector parameters
 ** Input parameters:    endEffectorParams, isQueued
-** Output parameters:   queuedCmdIndex
 ** Returned value:      true
 *********************************************************************************************************/
-int Dobot::SetEndEffectorParams(bool isQueued, uint64_t *queuedCmdIndex)
+int Dobot::SetEndEffectorParams(bool isQueued)
 {
     Message tempMessage;
 
@@ -169,10 +171,9 @@ int Dobot::SetEndEffectorParams(bool isQueued, uint64_t *queuedCmdIndex)
 ** Function name:       SetEndEffectorLaser
 ** Descriptions:        Set the laser output
 ** Input parameters:    on,isQueued
-** Output parameters:   queuedCmdIndex
 ** Returned value:      true
 *********************************************************************************************************/
-int Dobot::SetEndEffectorLaser(bool on, bool isQueued, uint64_t *queuedCmdIndex)
+int Dobot::SetEndEffectorLaser(bool on, bool isQueued)
 {
     Message tempMessage;
 
@@ -192,10 +193,9 @@ int Dobot::SetEndEffectorLaser(bool on, bool isQueued, uint64_t *queuedCmdIndex)
 ** Function name:       SetEndEffectorSuctionCup
 ** Descriptions:        Set the suctioncup output
 ** Input parameters:    suck,isQueued
-** Output parameters:   queuedCmdIndex
 ** Returned value:      true
 *********************************************************************************************************/
-int Dobot::SetEndEffectorSuctionCup(bool suck, bool isQueued, uint64_t *queuedCmdIndex)
+int Dobot::SetEndEffectorSuctionCup(bool suck, bool isQueued)
 {
     Message tempMessage;
 
@@ -214,10 +214,9 @@ int Dobot::SetEndEffectorSuctionCup(bool suck, bool isQueued, uint64_t *queuedCm
 ** Function name:       SetEndEffectorGripper
 ** Descriptions:        Set the gripper output
 ** Input parameters:    grip,isQueued
-** Output parameters:   queuedCmdIndex
 ** Returned value:      true
 *********************************************************************************************************/
-int Dobot::SetEndEffectorGripper(bool grip, bool isQueued, uint64_t *queuedCmdIndex)
+int Dobot::SetEndEffectorGripper(bool grip, bool isQueued)
 {
     Message tempMessage;
 
@@ -236,10 +235,9 @@ int Dobot::SetEndEffectorGripper(bool grip, bool isQueued, uint64_t *queuedCmdIn
 ** Function name:       SetJOGJointParams
 ** Descriptions:        Sets the joint jog parameter
 ** Input parameters:    jogJointParams,isQueued
-** Output parameters:   queuedCmdIndex
 ** Returned value:      true
 *********************************************************************************************************/
-int Dobot::SetJOGJointParams(bool isQueued, uint64_t *queuedCmdIndex)
+int Dobot::SetJOGJointParams(bool isQueued)
 {
     Message tempMessage;
 
@@ -259,10 +257,9 @@ int Dobot::SetJOGJointParams(bool isQueued, uint64_t *queuedCmdIndex)
 ** Function name:       SetJOGCoordinateParams
 ** Descriptions:        Sets the axis jog parameter
 ** Input parameters:    jogCoordinateParams,isQueued
-** Output parameters:   queuedCmdIndex
 ** Returned value:      true
 *********************************************************************************************************/
-int Dobot::SetJOGCoordinateParams(bool isQueued, uint64_t *queuedCmdIndex)
+int Dobot::SetJOGCoordinateParams(bool isQueued)
 {
     Message tempMessage;
 
@@ -282,10 +279,9 @@ int Dobot::SetJOGCoordinateParams(bool isQueued, uint64_t *queuedCmdIndex)
 ** Function name:       SetJOGCommonParams
 ** Descriptions:        Sets the jog common parameter
 ** Input parameters:    jogCommonParams,isQueued
-** Output parameters:   queuedCmdIndex
 ** Returned value:      true
 *********************************************************************************************************/
-int Dobot::SetJOGCommonParams(bool isQueued, uint64_t *queuedCmdIndex)
+int Dobot::SetJOGCommonParams(bool isQueued)
 {
     Message tempMessage;
 
@@ -305,10 +301,9 @@ int Dobot::SetJOGCommonParams(bool isQueued, uint64_t *queuedCmdIndex)
 ** Function name:       SetJOGCmd
 ** Descriptions:        Execute the jog function
 ** Input parameters:    jogCmd,isQueued
-** Output parameters:   queuedCmdIndex
 ** Returned value:      true
 *********************************************************************************************************/
-int Dobot::SetJOGCmd(bool isQueued, uint64_t *queuedCmdIndex)
+int Dobot::SetJOGCmd(bool isQueued)
 {
     Message tempMessage;
 
@@ -328,10 +323,9 @@ int Dobot::SetJOGCmd(bool isQueued, uint64_t *queuedCmdIndex)
 ** Function name:       SetPTPJointParams
 ** Descriptions:        Sets the articulation point parameter
 ** Input parameters:    ptpJointParams,isQueued
-** Output parameters:   queuedCmdIndex
 ** Returned value:      true
 *********************************************************************************************************/
-int Dobot::SetPTPJointParams(bool isQueued, uint64_t *queuedCmdIndex)
+int Dobot::SetPTPJointParams(bool isQueued)
 {
     Message tempMessage;
 
@@ -351,10 +345,9 @@ int Dobot::SetPTPJointParams(bool isQueued, uint64_t *queuedCmdIndex)
 ** Function name:       SetPTPCoordinateParams
 ** Descriptions:        Sets the coordinate position parameter
 ** Input parameters:    ptpCoordinateParams,isQueued
-** Output parameters:   queuedCmdIndex
 ** Returned value:      true
 *********************************************************************************************************/
-int Dobot::SetPTPCoordinateParams(bool isQueued, uint64_t *queuedCmdIndex)
+int Dobot::SetPTPCoordinateParams(bool isQueued)
 {
     Message tempMessage;
 
@@ -374,10 +367,9 @@ int Dobot::SetPTPCoordinateParams(bool isQueued, uint64_t *queuedCmdIndex)
 ** Function name:       SetPTPJumpParams
 ** Descriptions:        Set the gate type parameter
 ** Input parameters:    ptpJumpParams,isQueued
-** Output parameters:   queuedCmdIndex
 ** Returned value:      true
 *********************************************************************************************************/
-int Dobot::SetPTPJumpParams(bool isQueued, uint64_t *queuedCmdIndex)
+int Dobot::SetPTPJumpParams(bool isQueued)
 {
     Message tempMessage;
 
@@ -397,10 +389,9 @@ int Dobot::SetPTPJumpParams(bool isQueued, uint64_t *queuedCmdIndex)
 ** Function name:       SetPTPCommonParams
 ** Descriptions:        Set point common parameters
 ** Input parameters:    ptpCommonParams,isQueued
-** Output parameters:   queuedCmdIndex
 ** Returned value:      true
 *********************************************************************************************************/
-int Dobot::SetPTPCommonParams(bool isQueued, uint64_t *queuedCmdIndex)
+int Dobot::SetPTPCommonParams(bool isQueued)
 {
     Message tempMessage;
 
@@ -420,10 +411,9 @@ int Dobot::SetPTPCommonParams(bool isQueued, uint64_t *queuedCmdIndex)
 ** Function name:       SetPTPCmd
 ** Descriptions:        Execute the position function
 ** Input parameters:    ptpCmd,isQueued
-** Output parameters:   queuedCmdIndex
 ** Returned value:      true
 *********************************************************************************************************/
-int Dobot::SetPTPCmd(bool isQueued, uint64_t *queuedCmdIndex)
+int Dobot::SetPTPCmd(bool isQueued)
 {
     Message tempMessage;
 
@@ -440,7 +430,7 @@ int Dobot::SetPTPCmd(bool isQueued, uint64_t *queuedCmdIndex)
 }
 
 
-int Dobot::SetHOMECmd(bool isQueued, uint64_t *queuedCmdIndex)
+int Dobot::SetHOMECmd(bool isQueued)
 {
     Message tempMessage;
 
@@ -463,7 +453,7 @@ int Dobot::SetHOMECmd(bool isQueued, uint64_t *queuedCmdIndex)
 
 
 
-int Dobot::ClearDobotBuffer(bool isQueued, uint64_t *queuedCmdIndex)
+int Dobot::ClearDobotBuffer(bool isQueued)
 {
     Message tempMessage;
 
@@ -498,7 +488,7 @@ int Dobot::GetQueuedCmdCurrentIndex(bool isQueued, uint64_t *queuedCmdIndex)
     return true;
 }
 
-int Dobot::SetQueuedCmdStopExec(uint64_t *queuedCmdIndex)
+int Dobot::SetQueuedCmdStopExec()
 {
     Message tempMessage;
 
@@ -558,4 +548,33 @@ int Dobot::StopQueueExec(){
     MessageWrite(&_gSerialProtocolHandler, &tempMessage);
 
     return true;
+}
+
+
+int Dobot::available(){
+    if(instructionsQueue.size()==0) return true;
+    else return false;
+}
+
+int Dobot::firstMove(){
+    gPTPCmd.ptpMode = MOVJ_XYZ;
+    gPTPCmd.x = 84;
+    gPTPCmd.y = 127;
+    gPTPCmd.z = -8;
+    SetPTPCmd(1);
+
+    gPTPCmd.x = 158;
+    gPTPCmd.y = 100;
+    gPTPCmd.z = 38;
+    SetPTPCmd(1);
+
+    gPTPCmd.x = 163;
+    gPTPCmd.y = -21;
+    gPTPCmd.z = 122;
+    SetPTPCmd(1);
+
+    gPTPCmd.x = 91;
+    gPTPCmd.y = -196;
+    gPTPCmd.z = 68;
+    SetPTPCmd(1);
 }

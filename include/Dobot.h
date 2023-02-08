@@ -24,7 +24,8 @@ class Dobot{
         Packet gSerialTXPacketBuffer[PACKET_BUFFER_SIZE];
         Packet gSerialRXPacketBuffer[PACKET_BUFFER_SIZE];
         int idPrecedent;
-        
+        uint64_t param;
+        uint64_t param246Precedent;
 
     public:
         std::vector<uint64_t> instructionsQueue;
@@ -57,39 +58,49 @@ class Dobot{
         /*********************************************************************************************************
         ** End effector function
         *********************************************************************************************************/
-        int SetEndEffectorParams(bool isQueued, uint64_t *queuedCmdIndex);
-        int SetEndEffectorLaser(bool on, bool isQueued, uint64_t *queuedCmdIndex);
-        int SetEndEffectorSuctionCup(bool suck, bool isQueued, uint64_t *queuedCmdIndex);
-        int SetEndEffectorGripper(bool grip, bool isQueued, uint64_t *queuedCmdIndex);
+        int SetEndEffectorParams(bool isQueued);
+        int SetEndEffectorLaser(bool on, bool isQueued);
+        int SetEndEffectorSuctionCup(bool suck, bool isQueued);
+        int SetEndEffectorGripper(bool grip, bool isQueued);
 
         /*********************************************************************************************************
         ** JOG function
         *********************************************************************************************************/
-        int SetJOGJointParams(bool isQueued, uint64_t *queuedCmdIndex);
-        int SetJOGCoordinateParams(bool isQueued, uint64_t *queuedCmdIndex);
-        int SetJOGCommonParams(bool isQueued, uint64_t *queuedCmdIndex);
-        int SetJOGCmd(bool isQueued, uint64_t *queuedCmdIndex);
+        int SetJOGJointParams(bool isQueued);
+        int SetJOGCoordinateParams(bool isQueued);
+        int SetJOGCommonParams(bool isQueued);
+        int SetJOGCmd(bool isQueued);
 
         /*********************************************************************************************************
         ** PTP function
         *********************************************************************************************************/
-        int SetPTPJointParams(bool isQueued, uint64_t *queuedCmdIndex);
-        int SetPTPCoordinateParams(bool isQueued, uint64_t *queuedCmdIndex);
-        int SetPTPJumpParams(bool isQueued, uint64_t *queuedCmdIndex);
-        int SetPTPCommonParams(bool isQueued, uint64_t *queuedCmdIndex);
-        int SetPTPCmd(bool isQueued, uint64_t *queuedCmdIndex);
+        int SetPTPJointParams(bool isQueued);
+        int SetPTPCoordinateParams(bool isQueued);
+        int SetPTPJumpParams(bool isQueued);
+        int SetPTPCommonParams(bool isQueued);
+        int SetPTPCmd(bool isQueued);
 
 
         /*********************************************************************************************************
         ** EXTENDED function
         *********************************************************************************************************/
-        int ClearDobotBuffer(bool isQueued, uint64_t *queuedCmdIndex);
+        int ClearDobotBuffer(bool isQueued);
         int GetQueuedCmdCurrentIndex(bool isQueued, uint64_t *queuedCmdIndex);
-        int SetQueuedCmdStopExec(uint64_t *queuedCmdIndex);
-        int SetHOMECmd(bool isQueued, uint64_t *queuedCmdIndex);
+        int SetQueuedCmdStopExec();
+        int SetHOMECmd(bool isQueued);
         int ClearAllAlarms();
         int StartQueueExec();
         int StopQueueExec();
 
 
+
+        /*********************************************************************************************************
+        ** SYNCHRONIZATION function
+        *********************************************************************************************************/
+        int available();
+
+        /*********************************************************************************************************
+        ** COMPLEX MOVEMENT function
+        *********************************************************************************************************/
+        int firstMove();
 };

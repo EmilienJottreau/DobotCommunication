@@ -106,12 +106,19 @@ static void PacketReadProcess(ProtocolHandler *protocolHandler)
         RingBufferDequeue(rxRawByteQueue, &packet->header.payloadLen);
         RingBufferDequeue(rxRawByteQueue, &packet->payload.id);
         RingBufferDequeue(rxRawByteQueue, &packet->payload.ctrl);
+        if(packet->payload.id==0) continue;
+        //printf("(1), id : %x\n", &packet->payload.id);
+
         for (uint32_t i = 0; i < (uint32_t)(payloadLen - 2); i++) {
+            if(payloadLen==0) printf("i : %d id : %d \n", i, packet->payload.id);
             RingBufferDequeue(rxRawByteQueue, &packet->payload.params[i]);
         }
+        //printf("(2)\n");
         RingBufferDequeue(rxRawByteQueue, &packet->checksum);
         // Enqueu to rxPacketQueue
         RingBufferEnqueue(rxPacketQueue, packet);
+
+
     }
 }
 
