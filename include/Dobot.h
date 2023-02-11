@@ -103,4 +103,5 @@ class Dobot{
         ** COMPLEX MOVEMENT function
         *********************************************************************************************************/
         int firstMove();
+        int joyStickMove(int posX, int posY);
 };

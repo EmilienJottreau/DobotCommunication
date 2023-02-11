@@ -31,24 +31,31 @@
 #define ENSEMBLE_PIN 44
 #define SIMPLE_PIN1 52
 #define SIMPLE_PIN2 48
+
+
 //#define JOG_STICK
+#define JOYSTICKX 0 //care it's analog pin
+#define JOYSTICKY 1 //care it's analog pin
+#define JOYSTICKBUTTON 27
+#define ENABLEJOYSTICK 29
+
 /*********************************************************************************************************
 ** Global parameters
 *********************************************************************************************************/
-EndEffectorParams gEndEffectorParams;
-
-JOGJointParams gJOGJointParams;
-JOGCoordinateParams gJOGCoordinateParams;
-JOGCommonParams gJOGCommonParams;
-JOGCmd gJOGCmd;
-
-PTPCoordinateParams gPTPCoordinateParams;
-PTPCommonParams gPTPCommonParams;
-PTPCmd gPTPCmd;
-
-HOMECmd homeCmd;
-
-uint64_t gQueuedCmdIndex;
+//EndEffectorParams gEndEffectorParams;
+//
+//JOGJointParams gJOGJointParams;
+//JOGCoordinateParams gJOGCoordinateParams;
+//JOGCommonParams gJOGCommonParams;
+//JOGCmd gJOGCmd;
+//
+//PTPCoordinateParams gPTPCoordinateParams;
+//PTPCommonParams gPTPCommonParams;
+//PTPCmd gPTPCmd;
+//
+//HOMECmd homeCmd;
+//
+//uint64_t gQueuedCmdIndex;
 
 int count;
 unsigned long previousActivation1=0;
@@ -90,7 +97,7 @@ void clearQueue() {
 ** Returned value:      
 *********************************************************************************************************/
 
-//mettre le serial read dans classe dobot
+//TODO mettre le serial read dans classe dobot
 void Serialread() {
   while (Serial1.available()) {
     uint8_t data = Serial1.read();
@@ -112,6 +119,7 @@ void Serialread() {
 ** Output parameters:   
 ** Returned value:      
 *********************************************************************************************************/
+//TODO trouver l'utilité de cette fonction
 int Serial_putc(char c, struct __file*) {
   Serial.write(c);
   return c;
@@ -124,6 +132,7 @@ int Serial_putc(char c, struct __file*) {
 ** Output parameters:
 ** Returned value:      
 *********************************************************************************************************/
+//TODO trouver l'utilité de cette fonction
 void printf_begin(void) {
   fdevopen(&Serial_putc, 0);
 }
@@ -135,6 +144,8 @@ void printf_begin(void) {
 ** Output parameters:   none
 ** Returned value:      none
 *********************************************************************************************************/
+//deplacée dans dobot.cpp
+/*
 void InitRAM(void) {
   //Set JOG Model
   gJOGJointParams.velocity[0] = 100;
@@ -182,6 +193,7 @@ void InitRAM(void) {
   
   gQueuedCmdIndex = 0;
 }
+*/
 
 /*********************************************************************************************************
 ** Function name:       setup
@@ -203,6 +215,8 @@ void setup() {
   pinSwitchPullUp(SIMPLE_PIN1);
   pinSwitchPullUp(SIMPLE_PIN2);
   pinSwitchPullUp(ENSEMBLE_PIN);
+  pinSwitchPullUp(JOYSTICKBUTTON);
+  pinSwitchPullUp(ENABLEJOYSTICK);
 
   count = 0;
   attachInterrupt(digitalPinToInterrupt(2), clearQueue, RISING);
@@ -245,25 +259,35 @@ void loop() {
     dobot2.firstMove();
   }
 
+  if(digitalRead(ENABLEJOYSTICK)){
+    int posX = analogRead(JOYSTICKX);
+    int posY = analogRead(JOYSTICKY);
+    if(digitalRead(JOYSTICKBUTTON)){
+      dobot1.joyStickMove(posX,posY);
+    }
+    else{
+      dobot2.joyStickMove(posX,posY);
+    }
+  }
 
+
+
+
+
+
+
+  //end of loop
+
+  //ask dobot for their command index
   dobot1.GetQueuedCmdCurrentIndex(0,&dobot1.queuedCmdIndex);
   dobot2.GetQueuedCmdCurrentIndex(0,&dobot2.queuedCmdIndex);
-
-  //Serialread(); //tester si ce serial read sert a quelquechose ou si le flexi timer gere
-
+  //send message to the bus and process response
   dobot1.ProtocolProcess();
   dobot2.ProtocolProcess();
 
   delay(100);
-  
+
 }
-
-
-
-
-
-
-
 
 
 

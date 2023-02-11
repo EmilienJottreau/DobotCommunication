@@ -7,7 +7,7 @@
 #include <string.h>
 
 
-
+#define NEUTRAL 255
 
 Dobot::Dobot(DobotNumber number){
     if(number == DOBOT_1){
@@ -577,4 +577,33 @@ int Dobot::firstMove(){
     gPTPCmd.y = -196;
     gPTPCmd.z = 68;
     SetPTPCmd(1);
+}
+
+int Dobot::joyStickMove(int posX, int posY){//range analogRead() = 0:1023
+    if(abs(posX)>NEUTRAL){
+        //change speed, proportional to joystick position, find regression
+        //gJOGCoordinateParams.velocity[0] = 100;
+        //gJOGCoordinateParams.velocity[1] = 100;
+        //gJOGCoordinateParams.velocity[2] = 100;
+        //gJOGCoordinateParams.velocity[3] = 100;
+        //SetJOGCoordinateParams(1);
+        if(posX>0)  gJOGCmd.cmd = AP_DOWN;
+        else gJOGCmd.cmd = AN_DOWN;
+    } else {
+        gJOGCmd.cmd = IDEL;
+    }
+    SetJOGCmd(1);
+    if(abs(posY)>NEUTRAL){
+        //change speed, proportional to joystick position, find regression
+        //gJOGCoordinateParams.velocity[0] = 100;
+        //gJOGCoordinateParams.velocity[1] = 100;
+        //gJOGCoordinateParams.velocity[2] = 100;
+        //gJOGCoordinateParams.velocity[3] = 100;
+        //SetJOGCoordinateParams(1);
+        if(posX>0)  gJOGCmd.cmd = BP_DOWN;
+        else gJOGCmd.cmd = BN_DOWN;
+    } else {
+        gJOGCmd.cmd = IDEL;
+    }
+    SetJOGCmd(1);
 }
