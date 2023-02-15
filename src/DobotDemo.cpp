@@ -20,54 +20,81 @@
 #include "stdio.h"
 #include "Dobot.h"
 #include "FlexiTimer2.h"
+#include "MemoryFree.h"
 
 //Set Serial TX&RX Buffer Size
 #define SERIAL_TX_BUFFER_SIZE 64
 #define SERIAL_RX_BUFFER_SIZE 256
 
 #define DEBUG 1
-#define DEBUG_PIN 35
-#define RESET_PIN 39
-#define SIMPLE_PIN 24
+#define ENSEMBLE_PIN 40
+#define SIMPLE_PIN1 48
+#define SIMPLE_PIN2 44
+#define HOME_PIN 52
+#define START_STOP_PIN 36
+
+
 //#define JOG_STICK
+#define JOYSTICKX 0 //care it's analog pin
+#define JOYSTICKY 1 //care it's analog pin
+#define JOYSTICKBUTTON 27
+#define ENABLEJOYSTICK 29
+
+bool joyStickDobot = 0;
+unsigned long previousActivationJoyStickButton=0;
+
+bool stateStartStop = 1; //Start=1, Stop=0
+
 /*********************************************************************************************************
 ** Global parameters
 *********************************************************************************************************/
-EndEffectorParams gEndEffectorParams;
-
-JOGJointParams gJOGJointParams;
-JOGCoordinateParams gJOGCoordinateParams;
-JOGCommonParams gJOGCommonParams;
-JOGCmd gJOGCmd;
-
-PTPCoordinateParams gPTPCoordinateParams;
-PTPCommonParams gPTPCommonParams;
-PTPCmd gPTPCmd;
-
-HOMECmd homeCmd;
-
-uint64_t gQueuedCmdIndex;
+//EndEffectorParams gEndEffectorParams;
+//
+//JOGJointParams gJOGJointParams;
+//JOGCoordinateParams gJOGCoordinateParams;
+//JOGCommonParams gJOGCommonParams;
+//JOGCmd gJOGCmd;
+//
+//PTPCoordinateParams gPTPCoordinateParams;
+//PTPCommonParams gPTPCommonParams;
+//PTPCmd gPTPCmd;
+//
+//HOMECmd homeCmd;
+//
+//uint64_t gQueuedCmdIndex;
 
 int count;
-unsigned long previousActivation=0;
+unsigned long previousActivation1=0;
+unsigned long previousActivation2=0;
+unsigned long previousActivation3=0;
+unsigned long previousHomeActivation=0;
+unsigned long previousStartStopActivation=0;
+
+const unsigned int securityTime=1000;
 
 
 bool digitalReadMaison(unsigned char pin);
 void pinSwitchPullUp(unsigned char pin);
 void ActionSimple();
 
-Dobot dobot1(DOBOT_2);
+Dobot dobot1(DOBOT_1);
+Dobot dobot2(DOBOT_2);
+
 
 void clearQueue() {
-  printf("==Debut Interuption\n");
+  //printf("==Debut Interuption\n");
   //dobot1.ClearAllAlarms();
-  //dobot1.SetQueuedCmdStopExec(&gQueuedCmdIndex);
-  //dobot1.ClearDobotBuffer(0, &gQueuedCmdIndex);
-  dobot1.SetHOMECmd(1, &gQueuedCmdIndex);
+  printf("#STOP & CLEAR QUEUE\n");
+  dobot1.StopQueueExec(); // ca marche
+  dobot1.ClearDobotBuffer(0);
   dobot1.StartQueueExec();
   dobot1.ProtocolProcess();
-  printf("==Fin Interuption (Clear Alarm 21, Stop command exec 241, clear dobot buffer 245, home 31)\n");
+  stateStartStop = 1;
+
+  //printf("==Fin Interuption (Clear Alarm 21, Stop command exec 241, clear dobot buffer 245, home 31)\n");
 }
+
+
 
 //SetHOMECmd(HOMECmd *homeCmd, bool isQueued, uint64_t *queuedCmdIndex);
 
@@ -78,11 +105,19 @@ void clearQueue() {
 ** Output parameters:   
 ** Returned value:      
 *********************************************************************************************************/
+
+//TODO mettre le serial read dans classe dobot
 void Serialread() {
-  while (Serial2.available()) {
-    uint8_t data = Serial2.read();
+  while (Serial1.available()) {
+    uint8_t data = Serial1.read();
     if (RingBufferIsFull(&dobot1._gSerialProtocolHandler.rxRawByteQueue) == false) {
       RingBufferEnqueue(&dobot1._gSerialProtocolHandler.rxRawByteQueue, &data);
+    }
+  }
+  while (Serial2.available()) {
+    uint8_t data = Serial2.read();
+    if (RingBufferIsFull(&dobot2._gSerialProtocolHandler.rxRawByteQueue) == false) {
+      RingBufferEnqueue(&dobot2._gSerialProtocolHandler.rxRawByteQueue, &data);
     }
   }
 }
@@ -93,6 +128,7 @@ void Serialread() {
 ** Output parameters:   
 ** Returned value:      
 *********************************************************************************************************/
+//TODO trouver l'utilité de cette fonction
 int Serial_putc(char c, struct __file*) {
   Serial.write(c);
   return c;
@@ -105,6 +141,7 @@ int Serial_putc(char c, struct __file*) {
 ** Output parameters:
 ** Returned value:      
 *********************************************************************************************************/
+//TODO trouver l'utilité de cette fonction
 void printf_begin(void) {
   fdevopen(&Serial_putc, 0);
 }
@@ -116,6 +153,8 @@ void printf_begin(void) {
 ** Output parameters:   none
 ** Returned value:      none
 *********************************************************************************************************/
+//deplacée dans dobot.cpp
+/*
 void InitRAM(void) {
   //Set JOG Model
   gJOGJointParams.velocity[0] = 100;
@@ -163,6 +202,7 @@ void InitRAM(void) {
   
   gQueuedCmdIndex = 0;
 }
+*/
 
 /*********************************************************************************************************
 ** Function name:       setup
@@ -180,17 +220,28 @@ void setup() {
   //Set Timer Interrupt
   FlexiTimer2::set(100, Serialread);
   FlexiTimer2::start();
-  pinSwitchPullUp(DEBUG_PIN);
-  pinSwitchPullUp(RESET_PIN);
-  pinSwitchPullUp(SIMPLE_PIN);
+  pinSwitchPullUp(SIMPLE_PIN1);
+  pinSwitchPullUp(SIMPLE_PIN2);
+  pinSwitchPullUp(ENSEMBLE_PIN);
+  pinSwitchPullUp(JOYSTICKBUTTON);
+  pinSwitchPullUp(ENABLEJOYSTICK);
+  pinSwitchPullUp(HOME_PIN);
+  pinSwitchPullUp(START_STOP_PIN);
+
   count = 0;
   attachInterrupt(digitalPinToInterrupt(2), clearQueue, RISING);
   dobot1.ProtocolInit();
-  dobot1.SetJOGJointParams(true, &gQueuedCmdIndex);
-  dobot1.SetJOGCommonParams(true, &gQueuedCmdIndex);
-  dobot1.SetJOGCoordinateParams(true, &gQueuedCmdIndex);
+  dobot1.SetJOGJointParams(true);
+  dobot1.SetJOGCommonParams(true);
+  dobot1.SetJOGCoordinateParams(true);
   dobot1.ProtocolProcess();
-  printf("Fin SETUP ! \n");
+  printf("FIN SETUP DOBOT 1! \n");
+  dobot2.ProtocolInit();
+  dobot2.SetJOGJointParams(true);
+  dobot2.SetJOGCommonParams(true);
+  dobot2.SetJOGCoordinateParams(true);
+  dobot2.ProtocolProcess();
+  printf("FIN SETUP DOBOT 2! \n");
 }
 /*********************************************************************************************************
 ** Function name:       loop
@@ -201,109 +252,78 @@ void setup() {
 *********************************************************************************************************/
 
 void loop() {
-  //InitRAM();
+  //home button
+  if(digitalReadMaison(HOME_PIN) && millis() - previousHomeActivation > securityTime){
+    dobot1.SetHOMECmd(1);
+    dobot1.StartQueueExec();
+    dobot1.ProtocolProcess();
+    dobot2.SetHOMECmd(1);
+    dobot2.StartQueueExec();
+    dobot2.ProtocolProcess();
+    previousHomeActivation = millis();
+  }
 
+  if(digitalReadMaison(START_STOP_PIN) && millis() - previousStartStopActivation > securityTime){
+    if(stateStartStop==1){
+      printf("@STOP Queue\n");
+      dobot1.StopQueueExec();
+    }
+    else{
+      printf("@START Queue\n");
+      dobot1.StartQueueExec();
+    }
+    stateStartStop ^=1;
+    previousStartStopActivation = millis();
+  }
+
+  if(digitalReadMaison(SIMPLE_PIN1) && millis() - previousActivation1 > securityTime){
+    previousActivation1 = millis();
+    dobot1.firstMove();
+  }
+
+  if(digitalReadMaison(SIMPLE_PIN2) && millis() - previousActivation2 > securityTime){
+    previousActivation2 = millis();
+    dobot2.firstMove();
+  }
+
+  if(digitalReadMaison(ENSEMBLE_PIN) && millis() - previousActivation3 > securityTime){
+    previousActivation3 = millis();
+    dobot1.firstMove();
+    dobot2.firstMove();
+  }
+
+
+  //change dobot beeing controlled by joystick
+  if(digitalRead(JOYSTICKBUTTON) && millis() - previousActivationJoyStickButton > 200){
+    joyStickDobot ^= 1;  
+    previousActivationJoyStickButton = millis();
+  } 
 /*
-  SetJOGJointParams(&gJOGJointParams, true, &gQueuedCmdIndex);
-
-  SetJOGCoordinateParams(&gJOGCoordinateParams, true, &gQueuedCmdIndex);
-
-  SetJOGCommonParams(&gJOGCommonParams, true, &gQueuedCmdIndex);
-*/
-  //printf("\r\n======Enter demo application======\r\n");
-
-  //SetPTPCmd(&gPTPCmd, true, &gQueuedCmdIndex);
-
-
-  if (digitalReadMaison(DEBUG_PIN) == HIGH && 0) {
-    printf("===PIN ACTIVATED, %d, millis : %d ===\n", count, millis());
-    if (DEBUG) {
-      /*if(count & 0x01){
-        gPTPCmd.x = 100;
-        SetPTPCmd(&gPTPCmd, true, &gQueuedCmdIndex);
-      } else {
-      gPTPCmd.y = 100;
-      SetPTPCmd(&gPTPCmd, true, &gQueuedCmdIndex);
-
-      }*/
-      static uint32_t timer = millis();
-      if (millis() - timer > 1000) {
-      count++;
-        timer = millis();
-
-        switch (count) {
-          case 1:
-          printf("avance\n");
-            dobot1.gJOGCmd.cmd = AP_DOWN;
-            dobot1.gJOGCmd.isJoint = COORDINATE_MODEL;
-            dobot1.SetJOGCmd(true, &gQueuedCmdIndex);
-            break;
-          case 2:
-            dobot1.gJOGCmd.cmd = IDEL;
-            dobot1.gJOGCmd.isJoint = COORDINATE_MODEL;
-            dobot1.SetJOGCmd(true, &gQueuedCmdIndex);
-            break;
-          case 3:
-          printf("recule\n");
-            dobot1.gJOGCmd.cmd = AN_DOWN;
-            dobot1.gJOGCmd.isJoint = COORDINATE_MODEL;
-            dobot1.SetJOGCmd(true, &gQueuedCmdIndex);
-            break;
-          case 4:
-            dobot1.gJOGCmd.cmd = IDEL;
-            dobot1.gJOGCmd.isJoint = COORDINATE_MODEL;
-            dobot1.SetJOGCmd(true, &gQueuedCmdIndex);
-            break;
-          default:
-            count = 0;
-            break;
-        }
-      }
+  if(digitalRead(ENABLEJOYSTICK)){
+    int posX = analogRead(JOYSTICKX);
+    int posY = analogRead(JOYSTICKY);
+    if(joyStickDobot){
+      dobot1.joyStickMove(posX,posY);
+    }
+    else{
+      dobot2.joyStickMove(posX,posY);
     }
   }
-  //dobot1.GetQueuedCmdCurrentIndex(1,&gQueuedCmdIndex);
-  if(digitalReadMaison(RESET_PIN)) dobot1.ClearAllAlarms(); //marche pas
+*/
+  //end of loop
 
-  if(digitalReadMaison(SIMPLE_PIN) && millis() - previousActivation > 2000){
-    previousActivation = millis();
-    ActionSimple();
-  }
-  dobot1.GetQueuedCmdCurrentIndex(0,&gQueuedCmdIndex);
-
-  Serialread();
-  //printf("rien\n");
+  //ask dobot for their command index
+  dobot1.GetQueuedCmdCurrentIndex(0,&dobot1.queuedCmdIndex);
+  dobot2.GetQueuedCmdCurrentIndex(0,&dobot2.queuedCmdIndex);
+  //send message to the bus and process response
   dobot1.ProtocolProcess();
+  dobot2.ProtocolProcess();
+
   delay(100);
-  
+  dobot1.getHomeParams();
+
+
 }
-
-
-void ActionSimple(){
-  dobot1.gPTPCmd.ptpMode = MOVJ_XYZ;
-  dobot1.gPTPCmd.x = 84;
-  dobot1.gPTPCmd.y = 127;
-  dobot1.gPTPCmd.z = -8;
-  dobot1.SetPTPCmd(1,&gQueuedCmdIndex);
-
-  dobot1.gPTPCmd.x = 158;
-  dobot1.gPTPCmd.y = 100;
-  dobot1.gPTPCmd.z = 38;
-  dobot1.SetPTPCmd(1,&gQueuedCmdIndex);
-
-  dobot1.gPTPCmd.x = 163;
-  dobot1.gPTPCmd.y = -21;
-  dobot1.gPTPCmd.z = 122;
-  dobot1.SetPTPCmd(1,&gQueuedCmdIndex);
-
-  dobot1.gPTPCmd.x = 91;
-  dobot1.gPTPCmd.y = -196;
-  dobot1.gPTPCmd.z = 68;
-  dobot1.SetPTPCmd(1,&gQueuedCmdIndex);
-}
-
-
-
-
 
 
 
