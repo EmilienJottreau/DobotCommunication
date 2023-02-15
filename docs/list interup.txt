@@ -1,0 +1,69 @@
+#if defined(__AVR_ATmega640__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+	gAvrInt_PCINT2,			//	12
+#else
+	gAvrInt_NOT_USED,		//	12
+#endif
+	gAvrInt_WDT,			//	13
+	gAvrInt_TIMER2_COMPA,	//	14
+	gAvrInt_TIMER2_COMPB,	//	15
+	gAvrInt_TIMER2_OVF,		//	16
+	gAvrInt_TIMER1_CAPT,	//	17
+	gAvrInt_TIMER1_COMPA,	//	18
+	gAvrInt_TIMER1_COMPB,	//	19
+	gAvrInt_TIMER1_COMPC,	//	20
+	gAvrInt_TIMER1_OVF,		//	21
+	gAvrInt_TIMER0_COMPA,	//	22
+	gAvrInt_TIMER0_COMPB,	//	23
+	gAvrInt_TIMER0_OVF,		//	24
+	gAvrInt_SPI_STC,		//	25
+
+	gAvrInt_USART0_RX,		//	26
+	gAvrInt_USART0_UDRE,	//	27
+	gAvrInt_USART0_TX,		//	28
+	gAvrInt_ANALOG_COMP,	//	29
+	gAvrInt_ADC,			//	30
+	gAvrInt_EE_READY,		//	31
+
+	gAvrInt_TIMER3_CAPT,	//	32
+	gAvrInt_TIMER3_COMPA,	//	33
+	gAvrInt_TIMER3_COMPB,	//	34
+	gAvrInt_TIMER3_COMPC,	//	35
+	gAvrInt_TIMER3_OVF,		//	36
+
+	gAvrInt_USART1_RX,		//	37
+	gAvrInt_USART1_UDRE,	//	38
+	gAvrInt_USART1_TX,		//	39
+	gAvrInt_TWI,			//	40
+	gAvrInt_SPM_READY,		//	41
+#if defined(__AVR_ATmega640__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+	gAvrInt_TIMER4_CAPT,	//	42
+#else
+	gAvrInt_NOT_USED,		//	42
+#endif
+	gAvrInt_TIMER4_COMPA,	//	43
+	gAvrInt_TIMER4_COMPB,	//	44
+	gAvrInt_TIMER4_COMPC,	//	45
+	gAvrInt_TIMER4_OVF,		//	46
+#if defined(__AVR_ATmega640__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+	gAvrInt_TIMER5_CAPT,	//	47
+#else
+	gAvrInt_NOT_USED,		//	47
+#endif
+	gAvrInt_TIMER5_COMPA,	//	48
+	gAvrInt_TIMER5_COMPB,	//	49
+	gAvrInt_TIMER5_COMPC,	//	50
+	gAvrInt_TIMER5_OVF,		//	51
+
+#if defined(__AVR_ATmega640__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+	gAvrInt_USART2_RX,		//	52
+	gAvrInt_USART2_UDRE,	//	53
+	gAvrInt_USART2_TX,		//	54
+
+	gAvrInt_USART3_RX,		//	55
+	gAvrInt_USART3_UDRE,	//	56
+	gAvrInt_USART3_TX,		//	57
+#endif
+
+};
+
+#endif

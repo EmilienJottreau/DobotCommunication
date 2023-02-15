@@ -165,14 +165,16 @@ static void PacketWriteProcess(ProtocolHandler *protocolHandler)
             } else {
                 printf("Tx Packet: ");
 
-                printf("Packet header:%02x %02x, id:%d, ctrl:%02x, payloadLen:%d\r\n", packet->header.syncBytes[0],
-                        packet->header.syncBytes[1],packet->payload.id, packet->payload.ctrl, packet->header.payloadLen);
+                //printf("Packet header:%02x %02x, id:%d, ctrl:%02x, payloadLen:%d\r\n", packet->header.syncBytes[0],
+                //        packet->header.syncBytes[1],packet->payload.id, packet->payload.ctrl, packet->header.payloadLen);
+                printf("[id:%d, ",packet->payload.id);
                 printf("params: ");
                 for(int i=0; i<packet->header.payloadLen-2; i++)
                 {
                     printf("%02x ", packet->payload.params[i]);
                 }
-                printf("\r\nchecksum:%02x\r\n", packet->checksum);
+                printf("]\n");
+                //printf("\r\nchecksum:%02x\r\n", packet->checksum);
             }
             #endif
         } else {

@@ -27,10 +27,11 @@
 #define SERIAL_RX_BUFFER_SIZE 256
 
 #define DEBUG 1
-#define DEBUG_PIN 35
-#define ENSEMBLE_PIN 44
-#define SIMPLE_PIN1 52
-#define SIMPLE_PIN2 48
+#define ENSEMBLE_PIN 40
+#define SIMPLE_PIN1 48
+#define SIMPLE_PIN2 44
+#define HOME_PIN 52
+#define START_STOP_PIN 36
 
 
 //#define JOG_STICK
@@ -38,6 +39,11 @@
 #define JOYSTICKY 1 //care it's analog pin
 #define JOYSTICKBUTTON 27
 #define ENABLEJOYSTICK 29
+
+bool joyStickDobot = 0;
+unsigned long previousActivationJoyStickButton=0;
+
+bool stateStartStop = 1; //Start=1, Stop=0
 
 /*********************************************************************************************************
 ** Global parameters
@@ -61,6 +67,10 @@ int count;
 unsigned long previousActivation1=0;
 unsigned long previousActivation2=0;
 unsigned long previousActivation3=0;
+unsigned long previousHomeActivation=0;
+unsigned long previousStartStopActivation=0;
+
+const unsigned int securityTime=1000;
 
 
 bool digitalReadMaison(unsigned char pin);
@@ -72,17 +82,16 @@ Dobot dobot2(DOBOT_2);
 
 
 void clearQueue() {
-  printf("==Debut Interuption\n");
+  //printf("==Debut Interuption\n");
   //dobot1.ClearAllAlarms();
-  //dobot1.SetQueuedCmdStopExec(&gQueuedCmdIndex);
-  //dobot1.ClearDobotBuffer(0, &gQueuedCmdIndex);
-  dobot1.SetHOMECmd(1);
+  printf("#STOP & CLEAR QUEUE\n");
+  dobot1.StopQueueExec(); // ca marche
+  dobot1.ClearDobotBuffer(0);
   dobot1.StartQueueExec();
   dobot1.ProtocolProcess();
-  dobot2.SetHOMECmd(1);
-  dobot2.StartQueueExec();
-  dobot2.ProtocolProcess();
-  printf("==Fin Interuption (Clear Alarm 21, Stop command exec 241, clear dobot buffer 245, home 31)\n");
+  stateStartStop = 1;
+
+  //printf("==Fin Interuption (Clear Alarm 21, Stop command exec 241, clear dobot buffer 245, home 31)\n");
 }
 
 
@@ -211,12 +220,13 @@ void setup() {
   //Set Timer Interrupt
   FlexiTimer2::set(100, Serialread);
   FlexiTimer2::start();
-  pinSwitchPullUp(DEBUG_PIN);
   pinSwitchPullUp(SIMPLE_PIN1);
   pinSwitchPullUp(SIMPLE_PIN2);
   pinSwitchPullUp(ENSEMBLE_PIN);
   pinSwitchPullUp(JOYSTICKBUTTON);
   pinSwitchPullUp(ENABLEJOYSTICK);
+  pinSwitchPullUp(HOME_PIN);
+  pinSwitchPullUp(START_STOP_PIN);
 
   count = 0;
   attachInterrupt(digitalPinToInterrupt(2), clearQueue, RISING);
@@ -225,13 +235,13 @@ void setup() {
   dobot1.SetJOGCommonParams(true);
   dobot1.SetJOGCoordinateParams(true);
   dobot1.ProtocolProcess();
-  printf("Fin SETUP DOBOT 1! \n");
+  printf("FIN SETUP DOBOT 1! \n");
   dobot2.ProtocolInit();
   dobot2.SetJOGJointParams(true);
   dobot2.SetJOGCommonParams(true);
   dobot2.SetJOGCoordinateParams(true);
   dobot2.ProtocolProcess();
-  printf("Fin SETUP DOBOT 2! \n");
+  printf("FIN SETUP DOBOT 2! \n");
 }
 /*********************************************************************************************************
 ** Function name:       loop
@@ -242,40 +252,64 @@ void setup() {
 *********************************************************************************************************/
 
 void loop() {
+  //home button
+  if(digitalReadMaison(HOME_PIN) && millis() - previousHomeActivation > securityTime){
+    dobot1.SetHOMECmd(1);
+    dobot1.StartQueueExec();
+    dobot1.ProtocolProcess();
+    dobot2.SetHOMECmd(1);
+    dobot2.StartQueueExec();
+    dobot2.ProtocolProcess();
+    previousHomeActivation = millis();
+  }
 
-  if(digitalReadMaison(SIMPLE_PIN1) && millis() - previousActivation1 > 2000){
+  if(digitalReadMaison(START_STOP_PIN) && millis() - previousStartStopActivation > securityTime){
+    if(stateStartStop==1){
+      printf("@STOP Queue\n");
+      dobot1.StopQueueExec();
+    }
+    else{
+      printf("@START Queue\n");
+      dobot1.StartQueueExec();
+    }
+    stateStartStop ^=1;
+    previousStartStopActivation = millis();
+  }
+
+  if(digitalReadMaison(SIMPLE_PIN1) && millis() - previousActivation1 > securityTime){
     previousActivation1 = millis();
     dobot1.firstMove();
   }
 
-  if(digitalReadMaison(SIMPLE_PIN2) && millis() - previousActivation2 > 2000){
+  if(digitalReadMaison(SIMPLE_PIN2) && millis() - previousActivation2 > securityTime){
     previousActivation2 = millis();
     dobot2.firstMove();
   }
 
-  if(digitalReadMaison(ENSEMBLE_PIN) && millis() - previousActivation3 > 2000){
+  if(digitalReadMaison(ENSEMBLE_PIN) && millis() - previousActivation3 > securityTime){
     previousActivation3 = millis();
     dobot1.firstMove();
     dobot2.firstMove();
   }
 
+
+  //change dobot beeing controlled by joystick
+  if(digitalRead(JOYSTICKBUTTON) && millis() - previousActivationJoyStickButton > 200){
+    joyStickDobot ^= 1;  
+    previousActivationJoyStickButton = millis();
+  } 
+/*
   if(digitalRead(ENABLEJOYSTICK)){
     int posX = analogRead(JOYSTICKX);
     int posY = analogRead(JOYSTICKY);
-    if(digitalRead(JOYSTICKBUTTON)){
+    if(joyStickDobot){
       dobot1.joyStickMove(posX,posY);
     }
     else{
       dobot2.joyStickMove(posX,posY);
     }
   }
-
-
-
-
-
-
-
+*/
   //end of loop
 
   //ask dobot for their command index

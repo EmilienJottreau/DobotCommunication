@@ -86,7 +86,6 @@ class Dobot{
         *********************************************************************************************************/
         int ClearDobotBuffer(bool isQueued);
         int GetQueuedCmdCurrentIndex(bool isQueued, uint64_t *queuedCmdIndex);
-        int SetQueuedCmdStopExec();
         int SetHOMECmd(bool isQueued);
         int ClearAllAlarms();
         int StartQueueExec();

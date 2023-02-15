@@ -60,7 +60,7 @@ void Dobot::ProtocolProcess(){
             }
 
             if((message.id==246 && param246Precedent != param) || message.id!=246) {
-                printf("DOBOT %d : Rx message : [id : %d, param : ", _number, message.id);
+                printf("Dobot %d Rx : [id : %d, param : ", _number, message.id);
                 for(int i=0; i<message.paramsLen; i++)
                 {
                     printf("%02x ", message.params[i]);
@@ -77,9 +77,9 @@ void Dobot::ProtocolProcess(){
                 for (int i = 0; i <= index; i++)
                 {
                     //printf("  instruction queue len : %d\n", instructionsQueue.size());
-                    printf("==%08x : termine !\n",instructionsQueue[0]);
+                    printf("*Instruction %08x termine\n",instructionsQueue[0]);
                     instructionsQueue.erase(instructionsQueue.begin());
-                    if(available()) printf("//DOBOT %d PRET\n",_number);
+                    if(available()) printf("=> DOBOT %d PRET\n",_number);
                 }
                 
                 
@@ -115,7 +115,7 @@ void Dobot::InitRam(){
     gJOGCoordinateParams.acceleration[2] = 80;
     gJOGCoordinateParams.acceleration[3] = 80;
 
-    gJOGCommonParams.velocityRatio = 50;
+    gJOGCommonParams.velocityRatio = 100;
     gJOGCommonParams.accelerationRatio = 50;
 
     gJOGCmd.cmd = AP_DOWN;
@@ -488,21 +488,6 @@ int Dobot::GetQueuedCmdCurrentIndex(bool isQueued, uint64_t *queuedCmdIndex)
     return true;
 }
 
-int Dobot::SetQueuedCmdStopExec()
-{
-    Message tempMessage;
-
-    memset(&tempMessage, 0, sizeof(Message));
-    tempMessage.id = ProtocolQueuedCmdStopExec;
-    tempMessage.rw = true;
-    tempMessage.isQueued = 0;
-    tempMessage.paramsLen = 0;
-    memcpy(tempMessage.params, NULL, tempMessage.paramsLen);
-
-    MessageWrite(&_gSerialProtocolHandler, &tempMessage);
-
-    return true;
-}
 
 
 int Dobot::ClearAllAlarms(){
@@ -577,8 +562,11 @@ int Dobot::firstMove(){
     gPTPCmd.y = -196;
     gPTPCmd.z = 68;
     SetPTPCmd(1);
+    return true;
 }
 
+
+//fonction a refaire, neutral x=494 from 0 to 1023,  neutral y=500, from 0 to 1023
 int Dobot::joyStickMove(int posX, int posY){//range analogRead() = 0:1023
     if(abs(posX)>NEUTRAL){
         //change speed, proportional to joystick position, find regression
@@ -606,4 +594,5 @@ int Dobot::joyStickMove(int posX, int posY){//range analogRead() = 0:1023
         gJOGCmd.cmd = IDEL;
     }
     SetJOGCmd(1);
+    return true;
 }
