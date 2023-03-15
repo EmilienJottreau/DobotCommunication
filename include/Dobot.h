@@ -1,16 +1,8 @@
 #include <HardwareSerial.h>
 #include "ProtocolDef.h"
 #include "command.h"
-#include <vector>
 
-typedef struct tagPose
-{
-	float x;             // Robotic arm coordinate system x
-	float y;             // Robotic arm .
-	float z;             // Robotic arm coordinate system z
-	float r;             // Robotic arm coordinate system r
-	float jointAngle[4]; // Robotic arm 4 axis(The basement, rear arm, forearm,EndEffector) angles
-} Pose;
+#include <vector>
 
 typedef enum  tagDobotNumber{
     DOBOT_1,
@@ -36,6 +28,7 @@ class Dobot{
         uint64_t param246Precedent;
 
     public:
+        uint16_t nb_instr;//TEMPORAIRE
         std::vector<uint64_t> instructionsQueue;
         HardwareSerial* _serial;
         ProtocolHandler _gSerialProtocolHandler;
@@ -54,18 +47,6 @@ class Dobot{
         uint64_t queuedCmdIndex;
 
         HOMECmd homeCmd;
-
-        std::vector<uint8_t> _vect;
-        Pose pose;
-        HOMEParams homeParams;
-        PTPJumpParams PtpJumpParams;
-        JOGLParams JogLParams;
-        JOGJointParams JogJointParams;
-        JOGCoordinateParams JogCoordinateParams;
-        PTPJointParams PtpJointParams;
-        PTPCoordinateParams PtpCoordinateParams;
-        PTPLParams PtpLParams;
-        ARCParams ArcParams;
         
         Dobot(DobotNumber number);
         void ProtocolInit(void);//(dans protocol.cpp)
@@ -110,22 +91,16 @@ class Dobot{
         int ClearAllAlarms();
         int StartQueueExec();
         int StopQueueExec();
-        /*------------------NOUVELLES FONCTIONS----------*/
-        int getPose();
-        int getJOGParams();
-        int getHomeParams();
-        int getPTPJumpLParams();
 
-        uint32_t bytes_to_uint32_t(uint8_t a, uint8_t b, uint8_t c, uint8_t d);
 
-        int getParams(int ID_command);
-
-        /*-------------------------------------------------*/
 
         /*********************************************************************************************************
         ** SYNCHRONIZATION function
         *********************************************************************************************************/
+
         int available();
+        //bool IsSync(Dobot Dobot1, int waitedCommand1, Dobot Dobot2, int waitedCommand2);
+        bool IsSync(Dobot dobots[], int waitedCommands[]);
 
         /*********************************************************************************************************
         ** COMPLEX MOVEMENT function
