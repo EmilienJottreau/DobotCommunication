@@ -91,127 +91,6 @@ void Dobot::ProtocolProcess(){
             #endif
         }
     }
-    //TODO : remplacer les "#define GetPose", "#define GetHOMEParams", etc... par les procolos dans ProtocolID 
-    //----------------------------------------------------------------------------------------------
-    
-	switch (message.id)
-	{
-	case GetPose:
-		for (unsigned char i = 0; i < sizeof(message.params); i = i + 4) {
-			_vect.push_back(bytes_to_uint32_t(message.params[i], message.params[i + 1], message.params[i + 2], message.params[i + 3]));
-		}
-		pose.x = reinterpret_cast<float&>(_vect[0]);
-		pose.y = reinterpret_cast<float&>(_vect[1]);
-		pose.z = reinterpret_cast<float&>(_vect[2]);
-		pose.r = reinterpret_cast<float&>(_vect[3]);
-
-		for (unsigned char j = 0; j < 4; j++)
-		{
-			pose.jointAngle[j] = reinterpret_cast<float&>(_vect[4 + j]);
-		}
-		break;
-
-	case GetHOMEParams:
-		for (unsigned char i = 0; i < sizeof(message.params); i = i + 4) {
-			_vect.push_back(bytes_to_uint32_t(message.params[i], message.params[i + 1], message.params[i + 2], message.params[i + 3]));
-		}
-		homeParams.x = reinterpret_cast<float&>(_vect[0]);
-		homeParams.y = reinterpret_cast<float&>(_vect[1]);
-		homeParams.z = reinterpret_cast<float&>(_vect[2]);
-		homeParams.r = reinterpret_cast<float&>(_vect[3]);
-		break;
-
-	case GetPTPJumpLParams:
-		for (unsigned char i = 0; i < sizeof(message.params); i = i + 4) {
-			_vect.push_back(bytes_to_uint32_t(message.params[i], message.params[i + 1], message.params[i + 2], message.params[i + 3]));
-		}
-		PtpJumpParams.jumpHeight = reinterpret_cast<float&>(_vect[0]);
-		PtpJumpParams.maxJumpHeight = reinterpret_cast<float&>(_vect[1]);
-		break;
-
-	case GetJOGLParams:
-		for (unsigned char i = 0; i < sizeof(message.params); i = i + 4) {
-			_vect.push_back(bytes_to_uint32_t(message.params[i], message.params[i + 1], message.params[i + 2], message.params[i + 3]));
-		}
-		JogLParams.velocity = reinterpret_cast<float&>(_vect[0]);
-		JogLParams.acceleration = reinterpret_cast<float&>(_vect[1]);
-		break;
-
-	case GetJOGJointParams:
-		for (unsigned char i = 0; i < sizeof(message.params); i = i + 4) {
-			_vect.push_back(bytes_to_uint32_t(message.params[i], message.params[i + 1], message.params[i + 2], message.params[i + 3]));
-		}
-		for (unsigned char j = 0; j < 4; j++)
-		{
-			JogJointParams.velocity[j] = reinterpret_cast<float&>(_vect[j]);
-			JogJointParams.acceleration[j] = reinterpret_cast<float&>(_vect[j + 4]);
-		}
-		break;
-
-	case GetJOGCoordinateParams:
-		for (unsigned char i = 0; i < sizeof(message.params); i = i + 4) {
-			_vect.push_back(bytes_to_uint32_t(message.params[i], message.params[i + 1], message.params[i + 2], message.params[i + 3]));
-		}
-		for (unsigned char j = 0; j < 4; j++)
-		{
-			JogCoordinateParams.velocity[j] = reinterpret_cast<float&>(_vect[j]);
-			JogCoordinateParams.acceleration[j] = reinterpret_cast<float&>(_vect[j + 4]);
-		}
-		break;
-
-	case GetPTPJointParams:
-		for (unsigned char i = 0; i < sizeof(message.params); i = i + 4) {
-			_vect.push_back(bytes_to_uint32_t(message.params[i], message.params[i + 1], message.params[i + 2], message.params[i + 3]));
-		}
-		for (unsigned char j = 0; j < 4; j++)
-		{
-			PtpJointParams.velocity[j] = reinterpret_cast<float&>(_vect[j]);
-			PtpJointParams.acceleration[j] = reinterpret_cast<float&>(_vect[j + 4]);
-		}
-		break;
-
-	case GetPTPCoordinateParams:
-		for (unsigned char i = 0; i < sizeof(message.params); i = i + 4) {
-			_vect.push_back(bytes_to_uint32_t(message.params[i], message.params[i + 1], message.params[i + 2], message.params[i + 3]));
-		}
-		PtpCoordinateParams.xyzVelocity = _vect[0];
-		PtpCoordinateParams.rVelocity = _vect[1];
-		PtpCoordinateParams.xyzAcceleration = _vect[2];
-		PtpCoordinateParams.rAcceleration = _vect[3];
-		break;
-
-	/*case GetPTPJumpParams:
-		for (unsigned char i = 0; i < sizeof(message.params); i = i + 4) {
-			_vect.push_back(bytes_to_uint32_t(message.params[i], message.params[i + 1], message.params[i + 2], message.params[i + 3]));
-		}
-		PtpJumpParams.jumpHeight = _vect[0];
-		PtpJumpParams.maxJumpHeight = _vect[1];
-		break;*/
-
-	case GetPTPLParams:
-		for (unsigned char i = 0; i < sizeof(message.params); i = i + 4) {
-			_vect.push_back(bytes_to_uint32_t(message.params[i], message.params[i + 1], message.params[i + 2], message.params[i + 3]));
-		}
-		PtpLParams.velocity = _vect[0];
-		PtpLParams.acceleration = _vect[1];
-		break;
-
-	case GetARCParams:
-		for (unsigned char i = 0; i < sizeof(message.params); i = i + 4) {
-			_vect.push_back(bytes_to_uint32_t(message.params[i], message.params[i + 1], message.params[i + 2], message.params[i + 3]));
-		}
-		ArcParams.xyzVelocity = _vect[0];
-		ArcParams.rVelocity = _vect[1];
-		ArcParams.xyzAcceleration = _vect[2];
-		ArcParams.rAcceleration = _vect[3];
-		break;
-
-	default:
-		break;
-	}
-    //----------------------------------------------------------------------------------------------
-    
-
 }
 
 
@@ -571,6 +450,9 @@ int Dobot::SetHOMECmd(bool isQueued)
 
 
 
+
+
+
 int Dobot::ClearDobotBuffer(bool isQueued)
 {
     Message tempMessage;
@@ -637,77 +519,6 @@ int Dobot::StartQueueExec(){
 
     return true;
 }
-/*-------------------------------------------
-NOUVELLES FONCTIONS------------------------*/
-int Dobot::getPose(){
-    Message tempMessage;
-
-    memset(&tempMessage, 0, sizeof(Message));
-    tempMessage.id = ProtocolGetPose;
-    tempMessage.rw = false;
-    tempMessage.isQueued = 0;
-    tempMessage.paramsLen = 0;
-    memcpy(tempMessage.params, NULL, tempMessage.paramsLen);
-
-    MessageWrite(&_gSerialProtocolHandler, &tempMessage);
-
-    return true;         
-}
-
-int Dobot::getJOGParams(){
-    Message tempMessage;
-
-    memset(&tempMessage, 0, sizeof(Message));
-    tempMessage.id = ProtocolFunctionJOGBase;
-    tempMessage.rw = false;
-    tempMessage.isQueued = 0;
-    tempMessage.paramsLen = 0;
-    memcpy(tempMessage.params, NULL, tempMessage.paramsLen);
-
-    MessageWrite(&_gSerialProtocolHandler, &tempMessage);
-
-    return true;        
-}
-
-int Dobot::getHomeParams(){
-    Message tempMessage;
-
-    memset(&tempMessage, 0, sizeof(Message));
-    tempMessage.id = ProtocolHOMEParams;
-    tempMessage.rw = false;
-    tempMessage.isQueued = 0;
-    tempMessage.paramsLen = 0;
-    memcpy(tempMessage.params, NULL, tempMessage.paramsLen);
-
-    MessageWrite(&_gSerialProtocolHandler, &tempMessage);
-
-    return true;
-}
-
-int Dobot::getPTPJumpLParams(){
-    
-    
-    return true;
-}
-
-int Dobot::getParams(int ID_command){   //FONCTION CAPABLE D'EXEC TOUTES LES FONCTIONS GET
-    Message tempMessage;
-
-    memset(&tempMessage, 0, sizeof(Message));
-    tempMessage.id = ID_command;
-    tempMessage.rw = false;
-    tempMessage.isQueued = 0;
-    tempMessage.paramsLen = 0;
-    memcpy(tempMessage.params, NULL, tempMessage.paramsLen);
-
-    MessageWrite(&_gSerialProtocolHandler, &tempMessage);
-
-
-    return true;
-}
-
-/*----------------------------------------------
-----------------------------------------------*/
 
 int Dobot::StopQueueExec(){
    Message tempMessage;
@@ -724,7 +535,7 @@ int Dobot::StopQueueExec(){
     return true;
 }
 
-
+//Retourne true si Queue vide, False sinon
 int Dobot::available(){
     if(instructionsQueue.size()==0) return true;
     else return false;
@@ -786,6 +597,10 @@ int Dobot::joyStickMove(int posX, int posY){//range analogRead() = 0:1023
     return true;
 }
 
-uint32_t Dobot::bytes_to_uint32_t(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
-	return (a << 24) | (b << 16) | (c << 8) | d;
+/*
+//si commande que Dobot1 attend passe ou est passée et idem pour Dobot2, alors return true; false sinon
+bool Dobot::IsSync(Dobot Dobot1, int waitedCommand1, Dobot Dobot2, int waitedCommand2){
+   if(Dobot1.queuedCmdIndex >= waitedCommand1 && Dobot2.queuedCmdIndex >= waitedCommand2) return true; 
+    else return false;
 }
+*/
