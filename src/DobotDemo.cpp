@@ -21,6 +21,10 @@
 #include "Dobot.h"
 #include "FlexiTimer2.h"
 #include "MemoryFree.h"
+#include "hardcoded-g-code.h"
+#include "parser.h"
+#include "string"
+
 
 //Set Serial TX&RX Buffer Size
 #define SERIAL_TX_BUFFER_SIZE 64
@@ -32,12 +36,13 @@
 #define SIMPLE_PIN2 44
 #define HOME_PIN 52
 #define START_STOP_PIN 36
+#define STATUSLED 12
 
 
 //#define JOG_STICK
-#define JOYSTICKX 0 //care it's analog pin
-#define JOYSTICKY 1 //care it's analog pin
-#define JOYSTICKBUTTON 27
+#define JOYSTICKX A0 //care it's analog pin
+#define JOYSTICKY A1 //care it's analog pin
+#define JOYSTICKBUTTON 53
 #define ENABLEJOYSTICK 29
 
 bool joyStickDobot = 0;
@@ -48,20 +53,7 @@ bool stateStartStop = 1; //Start=1, Stop=0
 /*********************************************************************************************************
 ** Global parameters
 *********************************************************************************************************/
-//EndEffectorParams gEndEffectorParams;
-//
-//JOGJointParams gJOGJointParams;
-//JOGCoordinateParams gJOGCoordinateParams;
-//JOGCommonParams gJOGCommonParams;
-//JOGCmd gJOGCmd;
-//
-//PTPCoordinateParams gPTPCoordinateParams;
-//PTPCommonParams gPTPCommonParams;
-//PTPCmd gPTPCmd;
-//
-//HOMECmd homeCmd;
-//
-//uint64_t gQueuedCmdIndex;
+
 
 int count;
 unsigned long previousActivation1=0;
@@ -80,6 +72,9 @@ void ActionSimple();
 Dobot dobot1(DOBOT_1);
 Dobot dobot2(DOBOT_2);
 
+gpr::gcode_program p;
+int test=0;
+
 
 void clearQueue() {
   //printf("==Debut Interuption\n");
@@ -87,6 +82,7 @@ void clearQueue() {
   printf("#STOP & CLEAR QUEUE\n");
   dobot1.StopQueueExec(); // ca marche
   dobot1.ClearDobotBuffer(0);
+  dobot1.ClearAllAlarms();
   dobot1.StartQueueExec();
   dobot1.ProtocolProcess();
   stateStartStop = 1;
@@ -227,21 +223,33 @@ void setup() {
   pinSwitchPullUp(ENABLEJOYSTICK);
   pinSwitchPullUp(HOME_PIN);
   pinSwitchPullUp(START_STOP_PIN);
+  pinMode(STATUSLED, OUTPUT);
 
   count = 0;
   attachInterrupt(digitalPinToInterrupt(2), clearQueue, RISING);
   dobot1.ProtocolInit();
+  dobot1.InitRam();
   dobot1.SetJOGJointParams(true);
   dobot1.SetJOGCommonParams(true);
   dobot1.SetJOGCoordinateParams(true);
   dobot1.ProtocolProcess();
   printf("FIN SETUP DOBOT 1! \n");
+  dobot2.InitRam();
   dobot2.ProtocolInit();
   dobot2.SetJOGJointParams(true);
   dobot2.SetJOGCommonParams(true);
   dobot2.SetJOGCoordinateParams(true);
   dobot2.ProtocolProcess();
   printf("FIN SETUP DOBOT 2! \n");
+
+
+
+  ////PARSE G CODE PROGRAMME
+
+  p = gpr::parse_gcode(hardcoded_prog);
+  printf("programme gcode parsé\n");
+  Serial.println(atof("9876.98765"), 5);
+  printf("%f\n", atof("9876.98765"));
 }
 /*********************************************************************************************************
 ** Function name:       loop
@@ -283,7 +291,9 @@ void loop() {
 
   if(digitalReadMaison(SIMPLE_PIN2) && millis() - previousActivation2 > securityTime){
     previousActivation2 = millis();
-    dobot2.firstMove();
+    //dobot2.firstMove();
+    test = 1;
+    printf("activation boutton 3\n");
   }
 
   if(digitalReadMaison(ENSEMBLE_PIN) && millis() - previousActivation3 > securityTime){
@@ -298,29 +308,170 @@ void loop() {
     joyStickDobot ^= 1;  
     previousActivationJoyStickButton = millis();
   } 
-/*
-  if(digitalRead(ENABLEJOYSTICK)){
+
+
+
+  if(digitalReadMaison(ENABLEJOYSTICK)){
     int posX = analogRead(JOYSTICKX);
     int posY = analogRead(JOYSTICKY);
-    if(joyStickDobot){
-      dobot1.joyStickMove(posX,posY);
-    }
-    else{
-      dobot2.joyStickMove(posX,posY);
+    printf("joystick mode\n");
+    dobot1.joyStickMove(posX,posY);
+  }
+
+  
+
+  //end of loop
+  digitalWrite(STATUSLED,stateStartStop);
+  //ask dobot for their command index
+  float x = 0;
+  float y = 0;
+  float z = 0;
+  int j = 0;
+  if(test==1){
+  Dobot *chosenDobot = &dobot1;
+  
+  for (int i = 0; i < p.num_blocks(); i++) {
+        gpr::block b = p.get_block(i);
+        if (b.get_chunk(0).tp() != gpr::CHUNK_TYPE_WORD_ADDRESS) {
+            //commentaire ou autre
+            continue;
+        }
+        char letter = b.get_chunk(0).get_word();
+
+        switch (letter)
+        {
+        case 'G': //changed to see debug
+            switch (b.get_chunk(0).get_address().int_value())
+            {
+                //implementer tout les G
+                //  G00	Déplacement rapide               (MOVJ)
+                //  G01	Interpolation linéaire           (MOVL)
+                //  G02	Interpolation circulaire (sens horaire, anti-trigo) (ARC à implementer id 100 communication protocol)
+                //  G03	Interpolation circulaire (sens anti-horaire, trigo) (ARC à implementer)
+                    
+            case 0:
+                for (j = 1; j < b.size(); j++) {
+                    switch (b.get_chunk(j).get_word()) {
+                    case 'X':
+                        if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                            x = b.get_chunk(j).get_address().int_value();
+                        }
+                        else {
+                            x = b.get_chunk(j).get_address().double_value();
+                        }
+                        break;
+                    case 'Y':
+                        if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                            y = b.get_chunk(j).get_address().int_value();
+                        }
+                        else {
+                            y = b.get_chunk(j).get_address().double_value();
+                        }
+                        break;
+                    case 'Z':
+                        if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                            z = b.get_chunk(j).get_address().int_value();
+                        }
+                        else {
+                            z = b.get_chunk(j).get_address().double_value();
+                        }
+                        break;
+                    case 'F':
+                        //commande vitesse
+                        break;
+
+                    }
+                    //appel de la commande G0 avec nos fonctions speciales
+                    //debug
+                    //cout << "Commande G0 X " << x << " Y " << y << " Z " << z << " Somme : " << x+y+z << " Produit : " << x * y  << endl;
+                    chosenDobot->G0Command((float)x,(float)y,(float)z);
+                }
+                break;
+            case 1:
+                for (j = 1; j < b.size(); j++) {
+                    switch (b.get_chunk(j).get_word()) {
+                    case 'X':
+                    printf("type %d\n",b.get_chunk(j).get_address().tp());
+                        if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                            x = b.get_chunk(j).get_address().int_value();
+                        }
+                        else {
+                            x = b.get_chunk(j).get_address().double_value();
+                            printf("x en d %g\n",b.get_chunk(j).get_address().double_value());
+                        }
+                        Serial.print("x value ");
+                        Serial.println(x);
+                        break;
+                    case 'Y':
+                        if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                            y = b.get_chunk(j).get_address().int_value();
+                        }
+                        else {
+                            y = b.get_chunk(j).get_address().double_value();
+                        }
+                        break;
+                    case 'Z':
+                        if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                            z = b.get_chunk(j).get_address().int_value();
+                        }
+                        else {
+                            z = b.get_chunk(j).get_address().double_value();
+                        }
+                        break;
+                    case 'F':
+                        //commande vitesse
+                        break;
+
+                    }
+                }
+                //cout << "Commande G1 X " << x << " Y " << y << " Z " << z << " Somme : " << x+y+z << " Produit : " << x * y  << endl;
+                //printf("dans le main 7 x: %f\n",x);
+                chosenDobot->G1Command(x,y,z);
+                printf("gcode action i:%d, j:%d\n",i,j);
+                break;
+            case 2:
+                break;
+            case 3:
+                break;
+
+            default:
+                break;
+                
+            }
+            break;
+        case 'F':
+            break;
+        case 'M':
+            break;
+        default:
+            break;
+        }
+        //dobot1.ProtocolProcess();
     }
   }
-*/
-  //end of loop
-
-  //ask dobot for their command index
+  test=0;
   dobot1.GetQueuedCmdCurrentIndex(0,&dobot1.queuedCmdIndex);
   dobot2.GetQueuedCmdCurrentIndex(0,&dobot2.queuedCmdIndex);
   //send message to the bus and process response
   dobot1.ProtocolProcess();
   dobot2.ProtocolProcess();
 
-  delay(100);
 
+  char * str = "100\0";
+
+  std::string s2= "100";
+
+/*
+  double valeur;
+  valeur = strtod(s2.c_str(),(char**)0);
+
+  printf("val de f dans le main %lf, %f, %f\n", valeur, (float)valeur, valeur);
+  Serial.println(valeur);
+
+  Serial.println(valeur *5.2294);
+*/
+  delay(100); 
+  
 }
 
 
@@ -334,3 +485,8 @@ void pinSwitchPullUp(unsigned char pin) {
   pinMode(pin, INPUT);
   digitalWrite(pin, HIGH);
 }
+
+
+/* code joystick loop
+
+*/

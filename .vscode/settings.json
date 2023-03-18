@@ -1,6 +1,10 @@
 {
     "files.associations": {
         "*.embeddedhtml": "html",
-        "queue": "cpp"
+        "queue": "cpp",
+        "deque": "cpp",
+        "list": "cpp",
+        "string": "cpp",
+        "iosfwd": "cpp"
     }
 }

@@ -66,6 +66,7 @@ typedef enum {
     ProtocolJOGCoordinateParams = ProtocolFunctionJOGBase + 1,
     ProtocolJOGCommonParams = ProtocolFunctionJOGBase + 2,
     ProtocolJOGCmd = ProtocolFunctionJOGBase + 3,
+    ProtocolJOGLParams = ProtocolFunctionJOGBase + 4,
 
     // Function-PTP
     ProtocolFunctionPTPBase = 80,
@@ -75,6 +76,7 @@ typedef enum {
     ProtocolPTPJumpParams = ProtocolFunctionPTPBase + 2,
     ProtocolPTPCommonParams = ProtocolFunctionPTPBase + 3,
     ProtocolPTPCmd = ProtocolFunctionPTPBase + 4,
+    ProtocolPTPJumpLParams = ProtocolFunctionPTPBase + 5,
 
     // Function-CP
     ProtocolFunctionCPBase = 90,

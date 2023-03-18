@@ -10,7 +10,7 @@ typedef enum  tagDobotNumber{
     DOBOT_3,
 }DobotNumber;
 
-#define RAW_BYTE_BUFFER_SIZE    256
+#define RAW_BYTE_BUFFER_SIZE 256
 #define PACKET_BUFFER_SIZE  4
 
 class Dobot{
@@ -26,6 +26,10 @@ class Dobot{
         int idPrecedent;
         uint64_t param;
         uint64_t param246Precedent;
+
+
+        int joystickXState;
+        int joystickYState;
 
     public:
         std::vector<uint64_t> instructionsQueue;
@@ -44,6 +48,8 @@ class Dobot{
         PTPCmd gPTPCmd;
         PTPJumpParams gptpJumpParams;
         uint64_t queuedCmdIndex;
+
+        CPCmd gCPCmd;
 
         HOMECmd homeCmd;
         
@@ -79,7 +85,10 @@ class Dobot{
         int SetPTPJumpParams(bool isQueued);
         int SetPTPCommonParams(bool isQueued);
         int SetPTPCmd(bool isQueued);
-
+        /*********************************************************************************************************
+        ** PTP function
+        *********************************************************************************************************/
+       int SetCPCmd();
 
         /*********************************************************************************************************
         ** EXTENDED function
@@ -103,4 +112,9 @@ class Dobot{
         *********************************************************************************************************/
         int firstMove();
         int joyStickMove(int posX, int posY);
+        /*********************************************************************************************************
+        ** ENHANCED MOVEMENT function
+        *********************************************************************************************************/
+       void G0Command(float x, float y, float z);
+       void G1Command(float x, float y, float z);
 };

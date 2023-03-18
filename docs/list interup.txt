@@ -67,3 +67,7 @@
 };
 
 #endif
+
+
+
+2, 3, 18, 19, 20, 21 (pins 20 & 21 are not available to use for interrupts while they are used for I2C communication)
