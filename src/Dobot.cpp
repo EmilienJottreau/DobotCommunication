@@ -26,6 +26,7 @@ Dobot::Dobot(DobotNumber number){
     param246Precedent = 0;
     joystickXState = 0;
     joystickYState = 0;
+    actualProgIndex = 0;
 }
 
 void Dobot::ProtocolInit(){
@@ -683,7 +684,138 @@ void Dobot::G1Command(float x, float y, float z){
     gPTPCmd.x = x;
     gPTPCmd.y = y;
     gPTPCmd.z = z;
-    printf("x: %f  y : %f  z: %f",x,y,z);
+    //printf("x: %f  y : %f  z: %f",x,y,z);
     gPTPCmd.ptpMode = MOVL_XYZ;
     SetPTPCmd(1);
+}
+
+int Dobot::nextGCodeInstruction(){
+    if(actualProgIndex<prog.num_blocks()){
+        GCodeInterpretation();
+        actualProgIndex++;
+        return 0;
+    } else {
+        //programme terminé
+        return 1;
+    }
+}
+
+void Dobot::GCodeInterpretation(){
+    int j=0;
+    double x=0, y=0, z=0;
+
+    
+    gpr::block b = prog.get_block(actualProgIndex);
+    if (b.get_chunk(0).tp() != gpr::CHUNK_TYPE_WORD_ADDRESS) {
+        //commentaire ou autre
+        nextGCodeInstruction();
+        return;
+    }
+    char letter = b.get_chunk(0).get_word();
+
+    switch (letter)
+    {
+    case 'G': //changed to see debug
+        switch (b.get_chunk(0).get_address().int_value())
+        {
+            //implementer tout les G
+            //  G00	Déplacement rapide               (MOVJ)
+            //  G01	Interpolation linéaire           (MOVL)
+            //  G02	Interpolation circulaire (sens horaire, anti-trigo) (ARC à implementer id 100 communication protocol)
+            //  G03	Interpolation circulaire (sens anti-horaire, trigo) (ARC à implementer)
+                
+        case 0:
+            for (j = 1; j < b.size(); j++) {
+                switch (b.get_chunk(j).get_word()) {
+                case 'X':
+                    if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                        x = b.get_chunk(j).get_address().int_value();
+                    }
+                    else {
+                        x = b.get_chunk(j).get_address().double_value();
+                    }
+                    break;
+                case 'Y':
+                    if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                        y = b.get_chunk(j).get_address().int_value();
+                    }
+                    else {
+                        y = b.get_chunk(j).get_address().double_value();
+                    }
+                    break;
+                case 'Z':
+                    if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                        z = b.get_chunk(j).get_address().int_value();
+                    }
+                    else {
+                        z = b.get_chunk(j).get_address().double_value();
+                    }
+                    break;
+                case 'F':
+                    //commande vitesse
+                    break;
+
+                }
+                this->G0Command(x,y,z);
+            }
+            break;
+        case 1:
+            for (j = 1; j < b.size(); j++) {
+                switch (b.get_chunk(j).get_word()) {
+                case 'X':
+                //printf("type %d\n",b.get_chunk(j).get_address().tp());
+                    if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                        x = b.get_chunk(j).get_address().int_value();
+                    }
+                    else {
+                        x = b.get_chunk(j).get_address().double_value();
+                        printf("x en d %g\n",b.get_chunk(j).get_address().double_value());
+                    }
+                    //Serial.print("x value ");
+                    //Serial.println(x);
+                    break;
+                case 'Y':
+                    if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                        y = b.get_chunk(j).get_address().int_value();
+                    }
+                    else {
+                        y = b.get_chunk(j).get_address().double_value();
+                    }
+                    break;
+                case 'Z':
+                    if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                        z = b.get_chunk(j).get_address().int_value();
+                    }
+                    else {
+                        z = b.get_chunk(j).get_address().double_value();
+                    }
+                    break;
+                case 'F':
+                    //commande vitesse
+                    break;
+
+                }
+            }
+
+            this->G1Command(x,y,z);
+
+            break;
+        case 2:
+            break;
+        case 3:
+            break;
+
+        default:
+            break;
+            
+        }
+        break;
+    case 'F':
+        break;
+    case 'M':
+        break;
+    default:
+        break;
+    }
+
 }

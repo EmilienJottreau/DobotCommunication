@@ -2,6 +2,8 @@
 #include "ProtocolDef.h"
 #include "command.h"
 
+#include "parser.h"
+
 #include <vector>
 
 typedef enum  tagDobotNumber{
@@ -31,6 +33,8 @@ class Dobot{
         int joystickXState;
         int joystickYState;
 
+        
+
     public:
         std::vector<uint64_t> instructionsQueue;
         HardwareSerial* _serial;
@@ -52,10 +56,13 @@ class Dobot{
         CPCmd gCPCmd;
 
         HOMECmd homeCmd;
+
+        gpr::gcode_program prog;
+        int actualProgIndex;
         
         Dobot(DobotNumber number);
-        void ProtocolInit(void);//(dans protocol.cpp)
-        void ProtocolProcess(void);//(dans protocol.cpp) faire les ringbuffer
+        void ProtocolInit(void);
+        void ProtocolProcess(void);
         void InitRam(void);
         //mettre toutes les commandes possibles dedans (command.cpp + commandExented.cpp et faire this.gSerialProtocolHandler)
         //...
@@ -85,11 +92,8 @@ class Dobot{
         int SetPTPJumpParams(bool isQueued);
         int SetPTPCommonParams(bool isQueued);
         int SetPTPCmd(bool isQueued);
-        /*********************************************************************************************************
-        ** PTP function
-        *********************************************************************************************************/
-       int SetCPCmd();
-
+        int SetCPCmd();
+        
         /*********************************************************************************************************
         ** EXTENDED function
         *********************************************************************************************************/
@@ -113,8 +117,13 @@ class Dobot{
         int firstMove();
         int joyStickMove(int posX, int posY);
         /*********************************************************************************************************
-        ** ENHANCED MOVEMENT function
+        ** G-CODE function
         *********************************************************************************************************/
+       int nextGCodeInstruction();
+       void GCodeInterpretation();
+
+
        void G0Command(float x, float y, float z);
        void G1Command(float x, float y, float z);
+
 };

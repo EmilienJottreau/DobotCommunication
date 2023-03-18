@@ -86,9 +86,10 @@ namespace gpr {
     
     //double v = stod(s.next());
     string str = s.next();
+    /*
     char strstar[str.length()+1];
     for(int i=0; i<str.length();i++){
-      printf("str[%d] : %c \n", i, str[i]);
+      //printf("str[%d] : %c \n", i, str[i]);
       strstar[i] = str[i];
 
 
@@ -96,7 +97,8 @@ namespace gpr {
     strstar[str.length()] = '\0';
     //printf("strstar : %s\n", strstar);
 
-    double v = atof(strstar);
+    double v = atof(strstar);*/
+    double v = atof(str.c_str());
 
     
     s++;

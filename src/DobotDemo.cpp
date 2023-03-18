@@ -37,6 +37,7 @@
 #define HOME_PIN 52
 #define START_STOP_PIN 36
 #define STATUSLED 12
+#define CLEAR_ALARM_PIN  32
 
 
 //#define JOG_STICK
@@ -61,6 +62,7 @@ unsigned long previousActivation2=0;
 unsigned long previousActivation3=0;
 unsigned long previousHomeActivation=0;
 unsigned long previousStartStopActivation=0;
+unsigned long previousClearAlarm=0;
 
 const unsigned int securityTime=1000;
 
@@ -142,63 +144,7 @@ void printf_begin(void) {
   fdevopen(&Serial_putc, 0);
 }
 
-/*********************************************************************************************************
-** Function name:       InitRAM
-** Descriptions:        Initializes a global variable
-** Input parameters:    none
-** Output parameters:   none
-** Returned value:      none
-*********************************************************************************************************/
-//deplacée dans dobot.cpp
-/*
-void InitRAM(void) {
-  //Set JOG Model
-  gJOGJointParams.velocity[0] = 100;
-  gJOGJointParams.velocity[1] = 100;
-  gJOGJointParams.velocity[2] = 100;
-  gJOGJointParams.velocity[3] = 100;
-  gJOGJointParams.acceleration[0] = 80;
-  gJOGJointParams.acceleration[1] = 80;
-  gJOGJointParams.acceleration[2] = 80;
-  gJOGJointParams.acceleration[3] = 80;
 
-  gJOGCoordinateParams.velocity[0] = 100;
-  gJOGCoordinateParams.velocity[1] = 100;
-  gJOGCoordinateParams.velocity[2] = 100;
-  gJOGCoordinateParams.velocity[3] = 100;
-  gJOGCoordinateParams.acceleration[0] = 80;
-  gJOGCoordinateParams.acceleration[1] = 80;
-  gJOGCoordinateParams.acceleration[2] = 80;
-  gJOGCoordinateParams.acceleration[3] = 80;
-
-  gJOGCommonParams.velocityRatio = 50;
-  gJOGCommonParams.accelerationRatio = 50;
-
-  gJOGCmd.cmd = AP_DOWN;
-  gJOGCmd.isJoint = JOINT_MODEL;
-
-
-
-  //Set PTP Model
-  gPTPCoordinateParams.xyzVelocity = 100;
-  gPTPCoordinateParams.rVelocity = 100;
-  gPTPCoordinateParams.xyzAcceleration = 80;
-  gPTPCoordinateParams.rAcceleration = 80;
-
-  gPTPCommonParams.velocityRatio = 50;
-  gPTPCommonParams.accelerationRatio = 50;
-
-  gPTPCmd.ptpMode = MOVL_XYZ;
-  gPTPCmd.x = 200;
-  gPTPCmd.y = 0;
-  gPTPCmd.z = 0;
-  gPTPCmd.r = 0;
-
-  homeCmd.reserved = 0;
-  
-  gQueuedCmdIndex = 0;
-}
-*/
 
 /*********************************************************************************************************
 ** Function name:       setup
@@ -223,6 +169,7 @@ void setup() {
   pinSwitchPullUp(ENABLEJOYSTICK);
   pinSwitchPullUp(HOME_PIN);
   pinSwitchPullUp(START_STOP_PIN);
+  pinSwitchPullUp(CLEAR_ALARM_PIN);
   pinMode(STATUSLED, OUTPUT);
 
   count = 0;
@@ -246,7 +193,7 @@ void setup() {
 
   ////PARSE G CODE PROGRAMME
 
-  p = gpr::parse_gcode(hardcoded_prog);
+  dobot1.prog = gpr::parse_gcode(hardcoded_prog);
   printf("programme gcode parsé\n");
   Serial.println(atof("9876.98765"), 5);
   printf("%f\n", atof("9876.98765"));
@@ -292,14 +239,21 @@ void loop() {
   if(digitalReadMaison(SIMPLE_PIN2) && millis() - previousActivation2 > securityTime){
     previousActivation2 = millis();
     //dobot2.firstMove();
-    test = 1;
-    printf("activation boutton 3\n");
+    
+    printf("dobot 1 prochaine instruction\n");
+    dobot1.nextGCodeInstruction();
   }
 
   if(digitalReadMaison(ENSEMBLE_PIN) && millis() - previousActivation3 > securityTime){
     previousActivation3 = millis();
     dobot1.firstMove();
     dobot2.firstMove();
+  }
+
+  if(digitalReadMaison(CLEAR_ALARM_PIN) && millis() - previousClearAlarm > securityTime){
+    previousClearAlarm = millis();
+    dobot1.ClearAllAlarms();
+    dobot2.ClearAllAlarms();
   }
 
 
@@ -327,129 +281,7 @@ void loop() {
   float y = 0;
   float z = 0;
   int j = 0;
-  if(test==1){
-  Dobot *chosenDobot = &dobot1;
-  
-  for (int i = 0; i < p.num_blocks(); i++) {
-        gpr::block b = p.get_block(i);
-        if (b.get_chunk(0).tp() != gpr::CHUNK_TYPE_WORD_ADDRESS) {
-            //commentaire ou autre
-            continue;
-        }
-        char letter = b.get_chunk(0).get_word();
 
-        switch (letter)
-        {
-        case 'G': //changed to see debug
-            switch (b.get_chunk(0).get_address().int_value())
-            {
-                //implementer tout les G
-                //  G00	Déplacement rapide               (MOVJ)
-                //  G01	Interpolation linéaire           (MOVL)
-                //  G02	Interpolation circulaire (sens horaire, anti-trigo) (ARC à implementer id 100 communication protocol)
-                //  G03	Interpolation circulaire (sens anti-horaire, trigo) (ARC à implementer)
-                    
-            case 0:
-                for (j = 1; j < b.size(); j++) {
-                    switch (b.get_chunk(j).get_word()) {
-                    case 'X':
-                        if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
-                            x = b.get_chunk(j).get_address().int_value();
-                        }
-                        else {
-                            x = b.get_chunk(j).get_address().double_value();
-                        }
-                        break;
-                    case 'Y':
-                        if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
-                            y = b.get_chunk(j).get_address().int_value();
-                        }
-                        else {
-                            y = b.get_chunk(j).get_address().double_value();
-                        }
-                        break;
-                    case 'Z':
-                        if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
-                            z = b.get_chunk(j).get_address().int_value();
-                        }
-                        else {
-                            z = b.get_chunk(j).get_address().double_value();
-                        }
-                        break;
-                    case 'F':
-                        //commande vitesse
-                        break;
-
-                    }
-                    //appel de la commande G0 avec nos fonctions speciales
-                    //debug
-                    //cout << "Commande G0 X " << x << " Y " << y << " Z " << z << " Somme : " << x+y+z << " Produit : " << x * y  << endl;
-                    chosenDobot->G0Command((float)x,(float)y,(float)z);
-                }
-                break;
-            case 1:
-                for (j = 1; j < b.size(); j++) {
-                    switch (b.get_chunk(j).get_word()) {
-                    case 'X':
-                    printf("type %d\n",b.get_chunk(j).get_address().tp());
-                        if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
-                            x = b.get_chunk(j).get_address().int_value();
-                        }
-                        else {
-                            x = b.get_chunk(j).get_address().double_value();
-                            printf("x en d %g\n",b.get_chunk(j).get_address().double_value());
-                        }
-                        Serial.print("x value ");
-                        Serial.println(x);
-                        break;
-                    case 'Y':
-                        if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
-                            y = b.get_chunk(j).get_address().int_value();
-                        }
-                        else {
-                            y = b.get_chunk(j).get_address().double_value();
-                        }
-                        break;
-                    case 'Z':
-                        if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
-                            z = b.get_chunk(j).get_address().int_value();
-                        }
-                        else {
-                            z = b.get_chunk(j).get_address().double_value();
-                        }
-                        break;
-                    case 'F':
-                        //commande vitesse
-                        break;
-
-                    }
-                }
-                //cout << "Commande G1 X " << x << " Y " << y << " Z " << z << " Somme : " << x+y+z << " Produit : " << x * y  << endl;
-                //printf("dans le main 7 x: %f\n",x);
-                chosenDobot->G1Command(x,y,z);
-                printf("gcode action i:%d, j:%d\n",i,j);
-                break;
-            case 2:
-                break;
-            case 3:
-                break;
-
-            default:
-                break;
-                
-            }
-            break;
-        case 'F':
-            break;
-        case 'M':
-            break;
-        default:
-            break;
-        }
-        //dobot1.ProtocolProcess();
-    }
-  }
-  test=0;
   dobot1.GetQueuedCmdCurrentIndex(0,&dobot1.queuedCmdIndex);
   dobot2.GetQueuedCmdCurrentIndex(0,&dobot2.queuedCmdIndex);
   //send message to the bus and process response
