@@ -57,6 +57,8 @@ class Dobot{
 
         CPCmd gCPCmd;
 
+        CPCmd gCPCmd;
+
         HOMECmd homeCmd;
 
         gpr::gcode_program prog;
