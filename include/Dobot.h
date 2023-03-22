@@ -2,6 +2,8 @@
 #include "ProtocolDef.h"
 #include "command.h"
 
+#include "parser.h"
+
 #include <vector>
 
 typedef enum  tagDobotNumber{
@@ -10,7 +12,7 @@ typedef enum  tagDobotNumber{
     DOBOT_3,
 }DobotNumber;
 
-#define RAW_BYTE_BUFFER_SIZE    256
+#define RAW_BYTE_BUFFER_SIZE 256
 #define PACKET_BUFFER_SIZE  4
 
 class Dobot{
@@ -26,9 +28,15 @@ class Dobot{
         int idPrecedent;
         uint64_t param;
         uint64_t param246Precedent;
+        Pose previousPose;
+        Pose initPos;   //POSITION DE REPOS DU ROBOT (en dehors de la zone de travail)
+
+        int joystickXState;
+        int joystickYState;
+
+        
 
     public:
-        uint16_t nb_instr;//TEMPORAIRE
         std::vector<uint64_t> instructionsQueue;
         HardwareSerial* _serial;
         ProtocolHandler _gSerialProtocolHandler;
@@ -45,12 +53,18 @@ class Dobot{
         PTPCmd gPTPCmd;
         PTPJumpParams gptpJumpParams;
         uint64_t queuedCmdIndex;
+        Pose pose;
+
+        CPCmd gCPCmd;
 
         HOMECmd homeCmd;
+
+        gpr::gcode_program prog;
+        int actualProgIndex;
         
         Dobot(DobotNumber number);
-        void ProtocolInit(void);//(dans protocol.cpp)
-        void ProtocolProcess(void);//(dans protocol.cpp) faire les ringbuffer
+        void ProtocolInit(void);
+        void ProtocolProcess(void);
         void InitRam(void);
         //mettre toutes les commandes possibles dedans (command.cpp + commandExented.cpp et faire this.gSerialProtocolHandler)
         //...
@@ -80,8 +94,8 @@ class Dobot{
         int SetPTPJumpParams(bool isQueued);
         int SetPTPCommonParams(bool isQueued);
         int SetPTPCmd(bool isQueued);
-
-
+        int SetCPCmd();
+        
         /*********************************************************************************************************
         ** EXTENDED function
         *********************************************************************************************************/
@@ -97,14 +111,23 @@ class Dobot{
         /*********************************************************************************************************
         ** SYNCHRONIZATION function
         *********************************************************************************************************/
-
         int available();
-        //bool IsSync(Dobot Dobot1, int waitedCommand1, Dobot Dobot2, int waitedCommand2);
-        bool IsSync(Dobot dobots[], int waitedCommands[]);
-
+        void getPose(Pose *PoseParam);
+        void InitPos();
+        void goToPreviousPos();
         /*********************************************************************************************************
         ** COMPLEX MOVEMENT function
         *********************************************************************************************************/
         int firstMove();
         int joyStickMove(int posX, int posY);
+        /*********************************************************************************************************
+        ** G-CODE function
+        *********************************************************************************************************/
+       int nextGCodeInstruction();
+       void GCodeInterpretation();
+
+
+       void G0Command(float x, float y, float z);
+       void G1Command(float x, float y, float z);
+
 };

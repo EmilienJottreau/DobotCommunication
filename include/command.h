@@ -115,6 +115,20 @@ typedef struct tagHOMECmd {
 uint32_t reserved; // Reserved for future use
 } HOMECmd;
 
+
+
+typedef struct tagCPCmd {
+    uint8_t cpMode; //CP mode, 0: Relative mode 1: Absolute mode
+    float x; //x-coordinate increment(Relative mode) / x-coordinate(Absolute mode)
+    float y; //y-coordinate increment(Relative mode)/ y-coordinate(Absolute mode)
+    float z; // z-coordinate increment(Relative mode) / z-coordinate(Absolute mode)
+union {
+    float velocity; // Reserved
+    float power; //Laser power
+ };
+} CPCmd;
+
+
 #pragma pack(pop)
 
 #endif
