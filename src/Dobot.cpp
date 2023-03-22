@@ -24,6 +24,9 @@ Dobot::Dobot(DobotNumber number){
     }
     idPrecedent = 0;
     param246Precedent = 0;
+    joystickXState = 0;
+    joystickYState = 0;
+    actualProgIndex = 0;
 }
 
 void Dobot::ProtocolInit(){
@@ -116,10 +119,11 @@ void Dobot::InitRam(){
     gJOGCoordinateParams.acceleration[3] = 80;
 
     gJOGCommonParams.velocityRatio = 100;
-    gJOGCommonParams.accelerationRatio = 50;
+    gJOGCommonParams.accelerationRatio = 80;
 
     gJOGCmd.cmd = AP_DOWN;
-    gJOGCmd.isJoint = JOINT_MODEL;
+    //gJOGCmd.isJoint = JOINT_MODEL;
+    gJOGCmd.isJoint = COORDINATE_MODEL;
 
 
 
@@ -140,6 +144,12 @@ void Dobot::InitRam(){
 
     homeCmd.reserved = 0;
     
+
+
+    gCPCmd.cpMode = 0;
+    gCPCmd.x = 0;
+    gCPCmd.y = 0;
+    gCPCmd.z = 0;
 
 
 }
@@ -535,7 +545,7 @@ int Dobot::StopQueueExec(){
     return true;
 }
 
-//Retourne true si Queue vide, False sinon
+
 int Dobot::available(){
     if(instructionsQueue.size()==0) return true;
     else return false;
@@ -568,39 +578,281 @@ int Dobot::firstMove(){
 
 //fonction a refaire, neutral x=494 from 0 to 1023,  neutral y=500, from 0 to 1023
 int Dobot::joyStickMove(int posX, int posY){//range analogRead() = 0:1023
-    if(abs(posX)>NEUTRAL){
-        //change speed, proportional to joystick position, find regression
-        //gJOGCoordinateParams.velocity[0] = 100;
-        //gJOGCoordinateParams.velocity[1] = 100;
-        //gJOGCoordinateParams.velocity[2] = 100;
-        //gJOGCoordinateParams.velocity[3] = 100;
-        //SetJOGCoordinateParams(1);
-        if(posX>0)  gJOGCmd.cmd = AP_DOWN;
-        else gJOGCmd.cmd = AN_DOWN;
+    int actualXState;
+    int actualYState;
+    
+    int increment = 3;
+
+    if(posX <= 100){
+        gCPCmd.x = increment;
+        actualXState = 1;
+    }else if(posX >= 950){
+        gCPCmd.x = -increment;
+        actualXState = -1;
     } else {
+        gCPCmd.x = 0;
+        actualXState = 0;
+    }
+
+    if(posY <= 100){
+        gCPCmd.y = increment;
+        actualYState = 1;
+    } else if(posY >= 950){
+        gCPCmd.y = -increment;
+        actualYState = -1;
+    }
+    else {
+        gCPCmd.y = 0;
+        actualYState = 0;
+    }
+    //if(actualXState != joystickXState || actualYState != joystickYState)
+    SetCPCmd();
+
+
+
+
+    /*
+    posX -= 494;
+    posY -= 500;
+    printf("DEBUG : X=%d, Y=%d\n");
+    //X axis
+    if(posX > 0){
+        printf("X UP ");
+        gJOGCmd.cmd = AP_DOWN;
+    } else if (posX == 0) {
+        printf("X NEUTRAL ");
         gJOGCmd.cmd = IDEL;
+    } else {
+        printf("X DOWN ");
+        gJOGCmd.cmd = AN_DOWN;
+    }
+    if(posX!=0){
+        gJOGJointParams.velocity[0] = 0,1519 * abs(posX) + 24,996;//find regression y = 0,1519x + 24,996
+        printf("changed velocity x : %f ", gJOGJointParams.velocity[0]);
+    }
+    if(posY!=0){
+        gJOGJointParams.velocity[1] = 0,15 * abs(posY) + 25,005;//find regression y = 0,15x + 25,005
+        printf("changed velocity y : %f ", gJOGJointParams.velocity[0]);
+    }
+    
+    SetJOGCommonParams(1);
+    SetJOGCmd(1);
+    //Y axis
+    if(posY > 0){
+        printf("Y UP ");
+        gJOGCmd.cmd = BP_DOWN;
+    } else if (posY == 0) {
+        printf("Y NEUTRAL ");
+        gJOGCmd.cmd = IDEL;
+    } else {
+        printf("Y DOWN ");
+        gJOGCmd.cmd = BN_DOWN;
     }
     SetJOGCmd(1);
-    if(abs(posY)>NEUTRAL){
-        //change speed, proportional to joystick position, find regression
-        //gJOGCoordinateParams.velocity[0] = 100;
-        //gJOGCoordinateParams.velocity[1] = 100;
-        //gJOGCoordinateParams.velocity[2] = 100;
-        //gJOGCoordinateParams.velocity[3] = 100;
-        //SetJOGCoordinateParams(1);
-        if(posX>0)  gJOGCmd.cmd = BP_DOWN;
-        else gJOGCmd.cmd = BN_DOWN;
-    } else {
-        gJOGCmd.cmd = IDEL;
-    }
-    SetJOGCmd(1);
+*/
     return true;
 }
 
-/*
-//si commande que Dobot1 attend passe ou est passée et idem pour Dobot2, alors return true; false sinon
-bool Dobot::IsSync(Dobot Dobot1, int waitedCommand1, Dobot Dobot2, int waitedCommand2){
-   if(Dobot1.queuedCmdIndex >= waitedCommand1 && Dobot2.queuedCmdIndex >= waitedCommand2) return true; 
-    else return false;
+
+int Dobot::SetCPCmd(){
+    Message tempMessage;
+
+    memset(&tempMessage, 0, sizeof(Message));
+    tempMessage.id = ProtocolCPCmd;
+    tempMessage.rw = true;
+    tempMessage.isQueued = 1;
+    tempMessage.paramsLen = sizeof(CPCmd);
+    memcpy(tempMessage.params, (uint8_t *)&gCPCmd, tempMessage.paramsLen);
+
+    MessageWrite(&_gSerialProtocolHandler, &tempMessage);
+
+    return true;
+
+
 }
-*/
+
+
+void Dobot::G0Command(float x, float y, float z){
+    gPTPCmd.x = x;
+    gPTPCmd.y = y;
+    gPTPCmd.z = z;
+    gPTPCmd.ptpMode = JUMP_XYZ;
+    SetPTPCmd(1);
+
+}
+void Dobot::G1Command(float x, float y, float z){
+    gPTPCmd.x = x;
+    gPTPCmd.y = y;
+    gPTPCmd.z = z;
+    //printf("x: %f  y : %f  z: %f",x,y,z);
+    gPTPCmd.ptpMode = MOVL_XYZ;
+    SetPTPCmd(1);
+}
+
+int Dobot::nextGCodeInstruction(){
+    //temporaire
+    if(actualProgIndex==0){
+        actualProgIndex++;
+        G0Command(100,100,100);
+    } else if(actualProgIndex==1) {
+        actualProgIndex++;
+        G1Command(150,100,150);
+    } else if(actualProgIndex==2) {
+        actualProgIndex++;
+        G1Command(100,150,100);
+    } else if(actualProgIndex==3) {
+        actualProgIndex++;
+        G1Command(200,100,100);
+    }
+    /*
+    if(actualProgIndex<prog.num_blocks()){
+        GCodeInterpretation();
+        actualProgIndex++;
+        return 0;
+    } else {
+        //programme terminé
+        return 1;
+    }
+    */
+}
+
+void Dobot::GCodeInterpretation(){
+    int j=0;
+    double x=0, y=0, z=0;
+
+    
+    gpr::block b = prog.get_block(actualProgIndex);
+    if (b.get_chunk(0).tp() != gpr::CHUNK_TYPE_WORD_ADDRESS) {
+        //commentaire ou autre
+        nextGCodeInstruction();
+        return;
+    }
+    char letter = b.get_chunk(0).get_word();
+
+    switch (letter)
+    {
+    case 'G': //changed to see debug
+        switch (b.get_chunk(0).get_address().int_value())
+        {
+            //implementer tout les G
+            //  G00	Déplacement rapide               (MOVJ)
+            //  G01	Interpolation linéaire           (MOVL)
+            //  G02	Interpolation circulaire (sens horaire, anti-trigo) (ARC à implementer id 100 communication protocol)
+            //  G03	Interpolation circulaire (sens anti-horaire, trigo) (ARC à implementer)
+                
+        case 0:
+            for (j = 1; j < b.size(); j++) {
+                switch (b.get_chunk(j).get_word()) {
+                case 'X':
+                    if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                        x = b.get_chunk(j).get_address().int_value();
+                    }
+                    else {
+                        x = b.get_chunk(j).get_address().double_value();
+                    }
+                    break;
+                case 'Y':
+                    if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                        y = b.get_chunk(j).get_address().int_value();
+                    }
+                    else {
+                        y = b.get_chunk(j).get_address().double_value();
+                    }
+                    break;
+                case 'Z':
+                    if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                        z = b.get_chunk(j).get_address().int_value();
+                    }
+                    else {
+                        z = b.get_chunk(j).get_address().double_value();
+                    }
+                    break;
+                case 'F':
+                    //commande vitesse
+                    break;
+
+                }
+                this->G0Command(x,y,z);
+            }
+            break;
+        case 1:
+            for (j = 1; j < b.size(); j++) {
+                switch (b.get_chunk(j).get_word()) {
+                case 'X':
+                //printf("type %d\n",b.get_chunk(j).get_address().tp());
+                    if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                        x = b.get_chunk(j).get_address().int_value();
+                    }
+                    else {
+                        x = b.get_chunk(j).get_address().double_value();
+                        printf("x en d %g\n",b.get_chunk(j).get_address().double_value());
+                    }
+                    //Serial.print("x value ");
+                    //Serial.println(x);
+                    break;
+                case 'Y':
+                    if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                        y = b.get_chunk(j).get_address().int_value();
+                    }
+                    else {
+                        y = b.get_chunk(j).get_address().double_value();
+                    }
+                    break;
+                case 'Z':
+                    if (b.get_chunk(j).get_address().tp() == gpr::ADDRESS_TYPE_INTEGER) {
+                        z = b.get_chunk(j).get_address().int_value();
+                    }
+                    else {
+                        z = b.get_chunk(j).get_address().double_value();
+                    }
+                    break;
+                case 'F':
+                    //commande vitesse
+                    break;
+
+                }
+            }
+
+            this->G1Command(x,y,z);
+
+            break;
+        case 2:
+            break;
+        case 3:
+            break;
+
+        default:
+            break;
+            
+        }
+        break;
+    case 'F':
+        break;
+    case 'M':
+        break;
+    default:
+        break;
+    }
+}
+
+
+void Dobot::getPose(Pose *PoseParam){
+    Message tempMessage;
+
+    memset(&tempMessage, 0, sizeof(Message));
+    tempMessage.id = ProtocolGetPose;
+    tempMessage.rw = false;
+    tempMessage.isQueued = 0;
+    tempMessage.paramsLen = sizeof(PoseParam);
+    memcpy(tempMessage.params, (uint8_t *)PoseParam, tempMessage.paramsLen);
+
+    MessageWrite(&_gSerialProtocolHandler, &tempMessage);
+}
+
+void Dobot::InitPos(){
+   G0Command(initPos.x, initPos.y, initPos.z); 
+}
+
+void Dobot::goToPreviousPos(){
+    G0Command(pose.x, pose.y, pose.z);
+}

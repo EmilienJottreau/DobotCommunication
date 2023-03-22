@@ -20,7 +20,7 @@
 #include "stdio.h"
 #include "Dobot.h"
 #include "FlexiTimer2.h"
-#include "MemoryFree.h"
+//#include "MemoryFree.h"
 
 // Set Serial TX&RX Buffer Size
 #define SERIAL_TX_BUFFER_SIZE 64
@@ -313,7 +313,12 @@ void loop()
     dobot2.firstMove();
   }
 
-  uint16_t nb_instruction[] = {dobot1.nb_instr + dobot2.nb_instr + dobot3.nb_instr, dobot1.nb_instr, dobot2.nb_instr, dobot3.nb_instr};
+  uint16_t nb_instruction[] = {dobot1.prog.num_blocks() + dobot2.prog.num_blocks() + dobot3.prog.num_blocks(), dobot1.prog.num_blocks(), dobot2.prog.num_blocks(), dobot3.prog.num_blocks()};
+  /*------------------------------------------------------------------------------
+  dobot1.prog.num_blocks(); //Total
+  dobot1.actualProgIndex; //Index auquel on est 
+  dobot1.prog.num_blocks() - dobot1.actualProgIndex;  //ce qu'il nous reste
+  ------------------------------------------------------------------------------*/
   uint8_t ordo[nb_instruction[0]]; // tab de ordonnencement des dobots. Ex: [1,1,2,0,0,1,0,2,2,...]
   if (digitalReadMaison(DEMO_PIN) && millis() - previousActivation4 > securityTime)
   {
@@ -367,14 +372,15 @@ void loop()
     if (semaphore == 1)
     {
       semaphore = 0;
-      dobots[ordo[index_ordo]].GopToPreviousPos();
+      dobots[ordo[index_ordo]].goToPreviousPos();
       do
       {
-        dobots[ordo[index_ordo]].next();
+        dobots[ordo[index_ordo]].nextGCodeInstruction();
         index_ordo++;
       } while (ordo[index_ordo == ordo[index_ordo - 1]]);
-      dobots[ordo[index_ordo]].previousPos = dobots[ordo[index_ordo]].getPose();
-      dobots[ordo[index_ordo]].initPos();
+      //dobots[ordo[index_ordo]].pose = dobots[ordo[index_ordo]].getPose(&dobot1.pose);
+      dobots[ordo[index_ordo]].getPose(&dobot1.pose); //On prend la nouvelle position du robot
+      dobots[ordo[index_ordo]].InitPos();
     }
     if(semaphore == 0 && dobots[ordo[index_ordo]].available())
     {
