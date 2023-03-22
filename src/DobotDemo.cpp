@@ -84,7 +84,7 @@ Dobot dobot3(DOBOT_3);
 // uint16_t nb_instruction[];
 bool demo = false;
 uint8_t semaphore = 1;
-Dobot dobots[3];
+Dobot dobots[] = {dobot1, dobot2, dobot3};
 uint16_t index_ordo = 0;
 
 void clearQueue()

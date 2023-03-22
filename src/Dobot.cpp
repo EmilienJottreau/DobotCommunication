@@ -131,7 +131,7 @@ void Dobot::InitRam(){
     gPTPCoordinateParams.xyzVelocity = 100;
     gPTPCoordinateParams.rVelocity = 100;
     gPTPCoordinateParams.xyzAcceleration = 80;
-    gPTPCoordinateParams.rAcceleration = 80;
+    gPTPCoordinateParams.rAccleration = 80;
 
     gPTPCommonParams.velocityRatio = 50;
     gPTPCommonParams.accelerationRatio = 50;
