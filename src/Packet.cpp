@@ -106,12 +106,19 @@ static void PacketReadProcess(ProtocolHandler *protocolHandler)
         RingBufferDequeue(rxRawByteQueue, &packet->header.payloadLen);
         RingBufferDequeue(rxRawByteQueue, &packet->payload.id);
         RingBufferDequeue(rxRawByteQueue, &packet->payload.ctrl);
+        if(packet->payload.id==0) continue;
+        //printf("(1), id : %x\n", &packet->payload.id);
+
         for (uint32_t i = 0; i < (uint32_t)(payloadLen - 2); i++) {
+            if(payloadLen==0) printf("i : %d id : %d \n", i, packet->payload.id);
             RingBufferDequeue(rxRawByteQueue, &packet->payload.params[i]);
         }
+        //printf("(2)\n");
         RingBufferDequeue(rxRawByteQueue, &packet->checksum);
         // Enqueu to rxPacketQueue
         RingBufferEnqueue(rxPacketQueue, packet);
+
+
     }
 }
 
@@ -158,14 +165,16 @@ static void PacketWriteProcess(ProtocolHandler *protocolHandler)
             } else {
                 printf("Tx Packet: ");
 
-                printf("Packet header:%02x %02x, id:%d, ctrl:%02x, payloadLen:%d\r\n", packet->header.syncBytes[0],
-                        packet->header.syncBytes[1],packet->payload.id, packet->payload.ctrl, packet->header.payloadLen);
+                //printf("Packet header:%02x %02x, id:%d, ctrl:%02x, payloadLen:%d\r\n", packet->header.syncBytes[0],
+                //        packet->header.syncBytes[1],packet->payload.id, packet->payload.ctrl, packet->header.payloadLen);
+                printf("[id:%d, ",packet->payload.id);
                 printf("params: ");
                 for(int i=0; i<packet->header.payloadLen-2; i++)
                 {
                     printf("%02x ", packet->payload.params[i]);
                 }
-                printf("\r\nchecksum:%02x\r\n", packet->checksum);
+                printf("]\n");
+                //printf("\r\nchecksum:%02x\r\n", packet->checksum);
             }
             #endif
         } else {

@@ -18,7 +18,7 @@
 *********************************************************************************************************/
 #include "RingBuffer.h"
 #include <string.h>
-
+#include <stdio.h>
 /*********************************************************************************************************
 ** Function name:       RingBufferInit
 ** Descriptions:        RingBuffer init
@@ -101,6 +101,7 @@ void RingBufferDequeue(RingBuffer *ringBuffer, void *addr)
     if (addr) {
         memcpy(addr, (uint8_t *)ringBuffer->addr + ringBuffer->readAddress * ringBuffer->elemSize, ringBuffer->elemSize);
     }
+
     ringBuffer->readAddress = (ringBuffer->readAddress + 1) % ringBuffer->capacity;
     ringBuffer->readIndex++;
 #ifdef __arm__
