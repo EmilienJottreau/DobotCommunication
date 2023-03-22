@@ -61,7 +61,7 @@ typedef struct tagEndEffectorParams {
     float zBias;
 }EndEffectorParams;
 
-typedef struct tagJOGJointParams {
+/*typedef struct tagJOGJointParams {
     float velocity[4];
     float acceleration[4];
 }JOGJointParams;
@@ -70,7 +70,7 @@ typedef struct tagJOGCoordinateParams {
     float velocity[4];
     float acceleration[4];
 }JOGCoordinateParams;
-
+*/
 typedef struct tagJOGCommonParams {
     float velocityRatio;
     float accelerationRatio;
@@ -80,7 +80,7 @@ typedef struct tagJOGCmd {
     uint8_t isJoint;
     uint8_t cmd;
 }JOGCmd;
-
+/*
 typedef struct tagPTPJointParams {
     float velocity[4];
     float acceleration[4];
@@ -102,7 +102,7 @@ typedef struct tagPTPCommonParams {
     float velocityRatio;
     float accelerationRatio;
 }PTPCommonParams;
-
+*/
 typedef struct tagPTPCmd {
 uint8_t ptpMode;
     float x;
