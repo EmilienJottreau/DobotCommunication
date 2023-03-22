@@ -73,6 +73,7 @@ void ActionSimple();
 
 Dobot dobot1(DOBOT_1);
 Dobot dobot2(DOBOT_2);
+//Dobot dobot3(DOBOT_3);
 
 gpr::gcode_program p;
 int test=0;
@@ -192,11 +193,11 @@ void setup() {
 
 
   ////PARSE G CODE PROGRAMME
-
-  dobot1.prog = gpr::parse_gcode(hardcoded_prog);
+  printf("memoire avant le parse : %d\n",freeMemory());
+  //dobot1.prog = gpr::parse_gcode(hardcoded_prog);
   printf("programme gcode parsé\n");
-  Serial.println(atof("9876.98765"), 5);
-  printf("%f\n", atof("9876.98765"));
+  printf("memoire apres le parse : %d\n",freeMemory());
+
 }
 /*********************************************************************************************************
 ** Function name:       loop

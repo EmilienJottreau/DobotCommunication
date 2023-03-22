@@ -690,6 +690,21 @@ void Dobot::G1Command(float x, float y, float z){
 }
 
 int Dobot::nextGCodeInstruction(){
+    //temporaire
+    if(actualProgIndex==0){
+        actualProgIndex++;
+        G0Command(100,100,100);
+    } else if(actualProgIndex==1) {
+        actualProgIndex++;
+        G1Command(150,100,150);
+    } else if(actualProgIndex==2) {
+        actualProgIndex++;
+        G1Command(100,150,100);
+    } else if(actualProgIndex==3) {
+        actualProgIndex++;
+        G1Command(200,100,100);
+    }
+    /*
     if(actualProgIndex<prog.num_blocks()){
         GCodeInterpretation();
         actualProgIndex++;
@@ -698,6 +713,7 @@ int Dobot::nextGCodeInstruction(){
         //programme terminé
         return 1;
     }
+    */
 }
 
 void Dobot::GCodeInterpretation(){
