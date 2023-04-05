@@ -22,8 +22,8 @@
 #include "FlexiTimer2.h"
 #include "MemoryFree.h"
 #include "hardcoded-g-code.h"
-#include "parser.h"
-#include "string"
+#include "parser.h" 
+#include "string" 
 
 
 //Set Serial TX&RX Buffer Size
@@ -31,13 +31,20 @@
 #define SERIAL_RX_BUFFER_SIZE 256
 
 #define DEBUG 1
-#define ENSEMBLE_PIN 40
-#define SIMPLE_PIN1 48
-#define SIMPLE_PIN2 44
+
 #define HOME_PIN 52
+#define CLEAR_ALARM_PIN  48
 #define START_STOP_PIN 36
+#define SIMPLE_PIN1 32
+#define SIMPLE_PIN2 28
+#define SIMPLE_PIN3 24
+#define ENSEMBLE_PIN 25
+
+#define TESTGCODE 29
+
+#define DRAW 33
+
 #define STATUSLED 12
-#define CLEAR_ALARM_PIN  32
 
 
 //#define JOG_STICK
@@ -60,6 +67,8 @@ int count;
 unsigned long previousActivation1=0;
 unsigned long previousActivation2=0;
 unsigned long previousActivation3=0;
+unsigned long previousActivation4=0;
+unsigned long previousActivation5=0;
 unsigned long previousHomeActivation=0;
 unsigned long previousStartStopActivation=0;
 unsigned long previousClearAlarm=0;
@@ -73,9 +82,9 @@ void ActionSimple();
 
 Dobot dobot1(DOBOT_1);
 Dobot dobot2(DOBOT_2);
-//Dobot dobot3(DOBOT_3);
+Dobot dobot3(DOBOT_3);
 
-gpr::gcode_program p;
+//gpr::gcode_program p;
 int test=0;
 
 
@@ -88,6 +97,16 @@ void clearQueue() {
   dobot1.ClearAllAlarms();
   dobot1.StartQueueExec();
   dobot1.ProtocolProcess();
+  dobot2.StopQueueExec(); // ca marche
+  dobot2.ClearDobotBuffer(0);
+  dobot2.ClearAllAlarms();
+  dobot2.StartQueueExec();
+  dobot2.ProtocolProcess();
+  dobot3.StopQueueExec(); // ca marche
+  dobot3.ClearDobotBuffer(0);
+  dobot3.ClearAllAlarms();
+  dobot3.StartQueueExec();
+  dobot3.ProtocolProcess();
   stateStartStop = 1;
 
   //printf("==Fin Interuption (Clear Alarm 21, Stop command exec 241, clear dobot buffer 245, home 31)\n");
@@ -119,6 +138,12 @@ void Serialread() {
       RingBufferEnqueue(&dobot2._gSerialProtocolHandler.rxRawByteQueue, &data);
     }
   }
+  while (Serial3.available()) {
+    uint8_t data = Serial3.read();
+    if (RingBufferIsFull(&dobot3._gSerialProtocolHandler.rxRawByteQueue) == false) {
+      RingBufferEnqueue(&dobot3._gSerialProtocolHandler.rxRawByteQueue, &data);
+    }
+  }
 }
 /*********************************************************************************************************
 ** Function name:       Serial_putc
@@ -127,7 +152,7 @@ void Serialread() {
 ** Output parameters:   
 ** Returned value:      
 *********************************************************************************************************/
-//TODO trouver l'utilité de cette fonction
+
 int Serial_putc(char c, struct __file*) {
   Serial.write(c);
   return c;
@@ -140,7 +165,7 @@ int Serial_putc(char c, struct __file*) {
 ** Output parameters:
 ** Returned value:      
 *********************************************************************************************************/
-//TODO trouver l'utilité de cette fonction
+
 void printf_begin(void) {
   fdevopen(&Serial_putc, 0);
 }
@@ -189,14 +214,22 @@ void setup() {
   dobot2.SetJOGCoordinateParams(true);
   dobot2.ProtocolProcess();
   printf("FIN SETUP DOBOT 2! \n");
+  dobot3.InitRam();
+  dobot3.ProtocolInit();
+  dobot3.SetJOGJointParams(true);
+  dobot3.SetJOGCommonParams(true);
+  dobot3.SetJOGCoordinateParams(true);
+  dobot3.ProtocolProcess();
+  printf("FIN SETUP DOBOT 3! \n");
 
 
 
   ////PARSE G CODE PROGRAMME
-  printf("memoire avant le parse : %d\n",freeMemory());
+  //printf("memoire avant le parse : %d\n",freeMemory());
   //dobot1.prog = gpr::parse_gcode(hardcoded_prog);
-  printf("programme gcode parsé\n");
-  printf("memoire apres le parse : %d\n",freeMemory());
+  //printf("programme gcode parsé\n");
+  //printf("memoire apres le parse : %d\n",freeMemory());
+
 
 }
 /*********************************************************************************************************
@@ -216,17 +249,24 @@ void loop() {
     dobot2.SetHOMECmd(1);
     dobot2.StartQueueExec();
     dobot2.ProtocolProcess();
+    dobot3.SetHOMECmd(1);
+    dobot3.StartQueueExec();
+    dobot3.ProtocolProcess();
     previousHomeActivation = millis();
   }
 
-  if(digitalReadMaison(START_STOP_PIN) && millis() - previousStartStopActivation > securityTime){
+  if(digitalReadMaison(START_STOP_PIN) && millis() - previousStartStopActivation > securityTime*0.2){
     if(stateStartStop==1){
       printf("@STOP Queue\n");
       dobot1.StopQueueExec();
+      dobot2.StopQueueExec();
+      dobot3.StopQueueExec();
     }
     else{
       printf("@START Queue\n");
       dobot1.StartQueueExec();
+      dobot2.StartQueueExec();
+      dobot3.StartQueueExec();
     }
     stateStartStop ^=1;
     previousStartStopActivation = millis();
@@ -239,38 +279,34 @@ void loop() {
 
   if(digitalReadMaison(SIMPLE_PIN2) && millis() - previousActivation2 > securityTime){
     previousActivation2 = millis();
-    //dobot2.firstMove();
+    dobot2.firstMove();
     
-    printf("dobot 1 prochaine instruction\n");
-    dobot1.nextGCodeInstruction();
+    //printf("dobot 1 prochaine instruction\n");
+    //dobot1.nextGCodeInstruction();
+  }
+  if(digitalReadMaison(SIMPLE_PIN3) && millis() - previousActivation4 > securityTime){
+    previousActivation4 = millis();
+    dobot3.firstMove();
   }
 
   if(digitalReadMaison(ENSEMBLE_PIN) && millis() - previousActivation3 > securityTime){
     previousActivation3 = millis();
     dobot1.firstMove();
     dobot2.firstMove();
+    dobot3.firstMove();
   }
-
+  //ca marche pas
   if(digitalReadMaison(CLEAR_ALARM_PIN) && millis() - previousClearAlarm > securityTime){
     previousClearAlarm = millis();
     dobot1.ClearAllAlarms();
     dobot2.ClearAllAlarms();
   }
 
-
-  //change dobot beeing controlled by joystick
-  if(digitalRead(JOYSTICKBUTTON) && millis() - previousActivationJoyStickButton > 200){
-    joyStickDobot ^= 1;  
-    previousActivationJoyStickButton = millis();
-  } 
-
-
-
-  if(digitalReadMaison(ENABLEJOYSTICK)){
-    int posX = analogRead(JOYSTICKX);
-    int posY = analogRead(JOYSTICKY);
-    printf("joystick mode\n");
-    dobot1.joyStickMove(posX,posY);
+  if(digitalReadMaison(TESTGCODE) && millis() - previousActivation5 > securityTime){
+    previousActivation5 = millis();
+    dobot1.nextGCodeInstruction();
+    dobot2.nextGCodeInstruction();
+    dobot3.nextGCodeInstruction();
   }
 
   
@@ -285,25 +321,13 @@ void loop() {
 
   dobot1.GetQueuedCmdCurrentIndex(0,&dobot1.queuedCmdIndex);
   dobot2.GetQueuedCmdCurrentIndex(0,&dobot2.queuedCmdIndex);
+  dobot3.GetQueuedCmdCurrentIndex(0,&dobot3.queuedCmdIndex);
   //send message to the bus and process response
   dobot1.ProtocolProcess();
   dobot2.ProtocolProcess();
+  dobot3.ProtocolProcess();
 
-
-  char * str = "100\0";
-
-  std::string s2= "100";
-
-/*
-  double valeur;
-  valeur = strtod(s2.c_str(),(char**)0);
-
-  printf("val de f dans le main %lf, %f, %f\n", valeur, (float)valeur, valeur);
-  Serial.println(valeur);
-
-  Serial.println(valeur *5.2294);
-*/
-  delay(100); 
+  delay(100);
   
 }
 
@@ -319,7 +343,3 @@ void pinSwitchPullUp(unsigned char pin) {
   digitalWrite(pin, HIGH);
 }
 
-
-/* code joystick loop
-
-*/

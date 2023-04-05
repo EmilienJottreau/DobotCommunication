@@ -16,7 +16,7 @@ Dobot::Dobot(DobotNumber number){
     }
     if(number == DOBOT_2){
         _number = number;
-        _serial = &Serial2;
+        _serial = &Serial2; 
     }
     if(number == DOBOT_3){
         _number = number;
@@ -475,6 +475,9 @@ int Dobot::ClearDobotBuffer(bool isQueued)
     memcpy(tempMessage.params, NULL, tempMessage.paramsLen);
 
     MessageWrite(&_gSerialProtocolHandler, &tempMessage);
+
+    instructionsQueue.clear();
+    if(available()) printf("=> DOBOT %d PRET\n",_number);
 
     return true;
 }

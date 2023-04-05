@@ -5,6 +5,7 @@
         "deque": "cpp",
         "list": "cpp",
         "string": "cpp",
-        "iosfwd": "cpp"
+        "iosfwd": "cpp",
+        "algorithm": "cpp"
     }
 }
