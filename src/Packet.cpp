@@ -26,8 +26,7 @@
 ** Output parameters:   None
 ** Returned value:      None
 *********************************************************************************************************/
-
-
+uint8_t nb_new_instruction;
 
 static void PacketReadProcess(ProtocolHandler *protocolHandler)
 {
@@ -175,6 +174,7 @@ static void PacketWriteProcess(ProtocolHandler *protocolHandler)
                 }
                 printf("]\n");
                 //printf("\r\nchecksum:%02x\r\n", packet->checksum);
+                nb_new_instruction++;
             }
             #endif
         } else {
@@ -194,5 +194,6 @@ void PacketProcess(ProtocolHandler *protocolHandler)
 {
     PacketReadProcess(protocolHandler);
     PacketWriteProcess(protocolHandler);
+
 }
 

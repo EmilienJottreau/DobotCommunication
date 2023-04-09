@@ -6,11 +6,27 @@
 
 #include <vector>
 
+
+
+
 typedef enum  tagDobotNumber{
     DOBOT_1,
     DOBOT_2,
     DOBOT_3,
 }DobotNumber;
+
+typedef struct tagDobotOrigin{
+    float x;
+    float y;
+    float z;
+    float theta;
+}DobotOrigin;
+
+typedef struct TagPoint2D{
+  float x;
+  float y;
+  float z;
+}Point2D;
 
 #define RAW_BYTE_BUFFER_SIZE 256
 #define PACKET_BUFFER_SIZE  4
@@ -29,6 +45,7 @@ class Dobot{
         uint64_t param;
         uint64_t param246Precedent;
 
+        DobotOrigin origin;
 
         int joystickXState;
         int joystickYState;
@@ -116,6 +133,9 @@ class Dobot{
         *********************************************************************************************************/
         int firstMove();
         int joyStickMove(int posX, int posY);
+        void idlePos();
+        void danse();
+        void drawSegment(Point2D *Start, Point2D *End);
         /*********************************************************************************************************
         ** G-CODE function
         *********************************************************************************************************/
@@ -123,7 +143,15 @@ class Dobot{
        void GCodeInterpretation();
 
 
-       void G0Command(float x, float y, float z);
+       void G0Command(float x, float y, float z, bool jump);
+       void G0Command(Point2D *point, bool jump);
        void G1Command(float x, float y, float z);
+       void G1Command(Point2D *point);
+
+        /*********************************************************************************************************
+        ** Compute function
+        *********************************************************************************************************/
+       void transformFcoordsToDobotCoords(float *x, float *y, float *z);
+       
 
 };

@@ -33,7 +33,8 @@
 #define DEBUG 1
 
 #define HOME_PIN 52
-#define CLEAR_ALARM_PIN  48
+#define CLEAR_ALARM_PIN  40
+#define IDLE_PIN  48
 #define START_STOP_PIN 36
 #define SIMPLE_PIN1 32
 #define SIMPLE_PIN2 28
@@ -69,16 +70,33 @@ unsigned long previousActivation2=0;
 unsigned long previousActivation3=0;
 unsigned long previousActivation4=0;
 unsigned long previousActivation5=0;
+unsigned long previousActivation6=0;
+unsigned long previousActivation7=0;
 unsigned long previousHomeActivation=0;
 unsigned long previousStartStopActivation=0;
 unsigned long previousClearAlarm=0;
 
 const unsigned int securityTime=1000;
 
+bool draw_enabled = false;
+int draw_index=0;
+
+Point2D A;
+Point2D B;
+Point2D C;
+Point2D D;
+Point2D E;
+Point2D F;
+Point2D G;
+Point2D H;
+Point2D I;
+Point2D J;
+
 
 bool digitalReadMaison(unsigned char pin);
 void pinSwitchPullUp(unsigned char pin);
 void ActionSimple();
+void drawNext(int index);
 
 Dobot dobot1(DOBOT_1);
 Dobot dobot2(DOBOT_2);
@@ -221,7 +239,83 @@ void setup() {
   dobot3.SetJOGCoordinateParams(true);
   dobot3.ProtocolProcess();
   printf("FIN SETUP DOBOT 3! \n");
+  clearQueue();
+  
+  printf("Test coords \n");
 
+  /*
+  float x;
+  float y;
+  float z;
+  x = 148;
+  y = 105;
+  z = 0;
+
+  dobot1.transformFcoordsToDobotCoords(&x, &y, &z);
+  printf("dobot 1: x: ");
+  Serial.print(x);
+  printf(" y: "); 
+  Serial.print(y);
+  printf(" z: "); 
+  Serial.println(z);
+  x = 148;
+  y = 105;
+  z = 0;
+
+  dobot2.transformFcoordsToDobotCoords(&x, &y, &z);
+  printf("dobot 2: x: ");
+  Serial.print(x);
+  printf(" y: "); 
+  Serial.print(y);
+  printf(" z: "); 
+  Serial.println(z);
+
+  x = 148;
+  y = 105;
+  z = 0;
+
+  dobot3.transformFcoordsToDobotCoords(&x, &y, &z);
+  printf("dobot 3: x: ");
+  Serial.print(x);
+  printf(" y: "); 
+  Serial.print(y);
+  printf(" z: "); 
+  Serial.println(z);
+
+  x = 0;
+  y = 105;
+  z = 0;
+
+  dobot1.transformFcoordsToDobotCoords(&x, &y, &z);
+  printf("dobot 1: x: ");
+  Serial.print(x);
+  printf(" y: "); 
+  Serial.print(y);
+  printf(" z: "); 
+  Serial.println(z);
+  x = 0;
+  y = 105;
+  z = 0;
+
+  dobot2.transformFcoordsToDobotCoords(&x, &y, &z);
+  printf("dobot 2: x: ");
+  Serial.print(x);
+  printf(" y: "); 
+  Serial.print(y);
+  printf(" z: "); 
+  Serial.println(z);
+
+  x = 0;
+  y = 105;
+  z = 0;
+
+  dobot3.transformFcoordsToDobotCoords(&x, &y, &z);
+  printf("dobot 3: x: ");
+  Serial.print(x);
+  printf(" y: "); 
+  Serial.print(y);
+  printf(" z: "); 
+  Serial.println(z);*/
 
 
   ////PARSE G CODE PROGRAMME
@@ -230,7 +324,46 @@ void setup() {
   //printf("programme gcode parsé\n");
   //printf("memoire apres le parse : %d\n",freeMemory());
 
+  A.x = 92;
+  A.y = 65;
+  A.z = 0;
 
+  B.x = 167;
+  B.y = 37;
+  B.z = 0;
+
+  C.x = 213;
+  C.y = 107;
+  C.z = 0;
+
+  D.x = 167;
+  D.y = 172;
+  D.z = 0;
+  
+  E.x = 92;
+  E.y = 147;
+  E.z = 0;
+  
+  F.x = 137;
+  F.y = 134;
+  F.z = 0;
+  
+  G.x = 118;
+  G.y = 107;
+  G.z = 0;
+  
+  H.x = 137;
+  H.y = 78;
+  H.z = 0;
+
+  I.x = 166;
+  I.y = 78;
+  I.z = 0;
+  
+  J.x = 166;
+  J.y = 134;
+  J.z = 0;
+  
 }
 /*********************************************************************************************************
 ** Function name:       loop
@@ -255,7 +388,7 @@ void loop() {
     previousHomeActivation = millis();
   }
 
-  if(digitalReadMaison(START_STOP_PIN) && millis() - previousStartStopActivation > securityTime*0.2){
+  if(digitalReadMaison(START_STOP_PIN) && millis() - previousStartStopActivation > securityTime*0.5){
     if(stateStartStop==1){
       printf("@STOP Queue\n");
       dobot1.StopQueueExec();
@@ -291,9 +424,13 @@ void loop() {
 
   if(digitalReadMaison(ENSEMBLE_PIN) && millis() - previousActivation3 > securityTime){
     previousActivation3 = millis();
-    dobot1.firstMove();
-    dobot2.firstMove();
-    dobot3.firstMove();
+    //dobot1.firstMove();
+    //dobot2.firstMove();
+    //dobot3.firstMove();
+    dobot1.danse();
+    dobot2.danse();
+    dobot3.danse();
+
   }
   //ca marche pas
   if(digitalReadMaison(CLEAR_ALARM_PIN) && millis() - previousClearAlarm > securityTime){
@@ -308,7 +445,22 @@ void loop() {
     dobot2.nextGCodeInstruction();
     dobot3.nextGCodeInstruction();
   }
+  if(digitalReadMaison(IDLE_PIN) && millis() - previousActivation6 > securityTime){
+    previousActivation6 = millis();
+    dobot1.idlePos();
+    dobot2.idlePos();
+    dobot3.idlePos();
+  }
 
+  if(digitalReadMaison(DRAW) && millis() - previousActivation7 > securityTime){
+    previousActivation7 = millis();
+    draw_enabled = true;
+  }
+
+  if(draw_enabled && dobot1.available() && dobot2.available() && dobot3.available()){
+    drawNext(draw_index);
+    draw_index++;
+  }
   
 
   //end of loop
@@ -343,3 +495,30 @@ void pinSwitchPullUp(unsigned char pin) {
   digitalWrite(pin, HIGH);
 }
 
+void drawNext(int index){
+  if(index==0){
+    dobot2.drawSegment(&A, &C);
+    dobot2.idlePos();
+  } else if(index==1){
+    dobot3.drawSegment(&C, &E);
+    dobot3.idlePos();
+  } else if(index==2){
+    dobot2.drawSegment(&B, &I);
+    dobot2.idlePos();
+  } else if(index==3){
+    dobot3.drawSegment(&D, &J);
+    dobot3.drawSegment(&D, &F);
+    dobot3.ProtocolProcess();
+    dobot3.idlePos();
+  } else if( index==4){
+    dobot2.drawSegment(&B, &H);
+    dobot2.idlePos();
+  } else if(index==5){
+    dobot1.drawSegment(&E, &G);
+    dobot1.drawSegment(&G, &A);
+    dobot1.ProtocolProcess();
+    dobot1.idlePos();
+    draw_enabled = false;
+  }
+
+}

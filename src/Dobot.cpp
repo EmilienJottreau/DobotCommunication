@@ -5,28 +5,50 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 
 #define NEUTRAL 255
+
+
+extern uint8_t nb_new_instruction;
+
+
+float degToRad(float deg){
+    return deg * M_PI / 180;
+}
 
 Dobot::Dobot(DobotNumber number){
     if(number == DOBOT_1){
         _number = number;
         _serial = &Serial1;
+        origin.x = 160 - 61;
+        origin.y = -105;
+        origin.z = -56;
+        origin.theta = degToRad(0);
     }
     if(number == DOBOT_2){
         _number = number;
         _serial = &Serial2; 
+        origin.x = 270 - 61;
+        origin.y = 177;
+        origin.z = -56.5;
+        origin.theta = degToRad(-120);
     }
     if(number == DOBOT_3){
         _number = number;
         _serial = &Serial3;
+        origin.x = 456 - 61;
+        origin.y = -76;
+        origin.z = -53;
+        origin.theta = degToRad(120);
     }
     idPrecedent = 0;
     param246Precedent = 0;
     joystickXState = 0;
     joystickYState = 0;
     actualProgIndex = 0;
+    nb_new_instruction = 0;
 }
 
 void Dobot::ProtocolInit(){
@@ -42,6 +64,11 @@ void Dobot::ProtocolProcess(){
 
 
     MessageProcess(&_gSerialProtocolHandler);
+
+    for(int i=0; i<nb_new_instruction; i++){
+        instructionsQueue.push_back(queuedCmdIndex+nb_new_instruction);
+    }
+    nb_new_instruction=0;
 
     if (RingBufferGetCount(&_gSerialProtocolHandler.txRawByteQueue)) {
         uint8_t data;
@@ -71,15 +98,31 @@ void Dobot::ProtocolProcess(){
                 }
                 printf("]\n");
             }
+            if(message.id == 245){
+                //clear queue
+                instructionsQueue.clear();
+            }
 
             if(message.id == 246) {
+                queuedCmdIndex = param;
+
+                //for(int i=0; i<message.paramsLen; i++)
+                //{
+                //    printf("%02x ", queuedCmdIndex >> 8*i);
+                //}
+                //printf("\n");
+                /*for(int i=0; i< instructionsQueue.size();i++){
+                    printf("%llu \n " , instructionsQueue[i]);
+                }*/
+                printf("Dobot %d  instruction queue len : %d\n", _number, instructionsQueue.size());
+
                 int index=-1;
                 for(int i=0; i<instructionsQueue.size(); i++){
                     if(instructionsQueue[i] == param) index = i;
                 }
                 for (int i = 0; i <= index; i++)
                 {
-                    //printf("  instruction queue len : %d\n", instructionsQueue.size());
+                    printf("  instruction queue len : %d\n", instructionsQueue.size());
                     printf("*Instruction %08x termine\n",instructionsQueue[0]);
                     instructionsQueue.erase(instructionsQueue.begin());
                     if(available()) printf("=> DOBOT %d PRET\n",_number);
@@ -87,7 +130,7 @@ void Dobot::ProtocolProcess(){
                 
                 
             } else{
-                instructionsQueue.push_back(param);
+                //instructionsQueue.push_back(param);
             }
 
             param246Precedent = param;
@@ -675,14 +718,27 @@ int Dobot::SetCPCmd(){
 }
 
 
-void Dobot::G0Command(float x, float y, float z){
+void Dobot::G0Command(float x, float y, float z, bool jump){
     gPTPCmd.x = x;
     gPTPCmd.y = y;
     gPTPCmd.z = z;
-    gPTPCmd.ptpMode = JUMP_XYZ;
+    if(jump)
+        gPTPCmd.ptpMode = JUMP_XYZ;
+    else
+        gPTPCmd.ptpMode = MOVJ_XYZ;
     SetPTPCmd(1);
 
 }
+void Dobot::G0Command(Point2D *point, bool jump){
+    float x = point->x;
+    float y = point->y;
+    float z = point->z;
+
+    transformFcoordsToDobotCoords(&x,&y,&z);
+
+    G0Command(x,y ,z , jump);
+}
+
 void Dobot::G1Command(float x, float y, float z){
     gPTPCmd.x = x;
     gPTPCmd.y = y;
@@ -691,12 +747,21 @@ void Dobot::G1Command(float x, float y, float z){
     gPTPCmd.ptpMode = MOVL_XYZ;
     SetPTPCmd(1);
 }
+void Dobot::G1Command(Point2D *point){
+    float x = point->x;
+    float y = point->y;
+    float z = point->z;
+
+    transformFcoordsToDobotCoords(&x,&y,&z);
+
+    G1Command(x,y,z);
+}
 
 int Dobot::nextGCodeInstruction(){
     //temporaire
     if(actualProgIndex==0){
         actualProgIndex++;
-        G0Command(100,100,100);
+        G0Command(100,100,100, false);
     } else if(actualProgIndex==1) {
         actualProgIndex++;
         G1Command(150,100,150);
@@ -717,6 +782,11 @@ int Dobot::nextGCodeInstruction(){
         return 1;
     }
     */
+}
+
+void Dobot::drawSegment(Point2D *Start, Point2D *End){
+    G0Command(Start, true);
+    G1Command(End);
 }
 
 void Dobot::GCodeInterpretation(){
@@ -775,7 +845,7 @@ void Dobot::GCodeInterpretation(){
                     break;
 
                 }
-                this->G0Command(x,y,z);
+                this->G0Command(x,y,z, true);
             }
             break;
         case 1:
@@ -837,4 +907,34 @@ void Dobot::GCodeInterpretation(){
         break;
     }
 
+}
+
+
+void Dobot::idlePos(){
+    G0Command(75, 140, 35, false);
+}
+
+void Dobot::transformFcoordsToDobotCoords(float *x, float *y, float *z){
+    float new_x = cos(origin.theta) * (*x) - sin(origin.theta) * (*y) + origin.x;
+    float new_y = sin(origin.theta) * (*x) + cos(origin.theta) * (*y) + origin.y;
+    float new_z = 1* (*z) + origin.z;
+
+    *x = new_x;
+    *y = new_y;
+    *z = new_z;
+}
+
+void Dobot::danse() {
+    G0Command(160, 0, 128, false);
+    G0Command(140, 0, 172, false);
+    G0Command(140, 0, 100, false);
+    G0Command(191, 134, 77, false);
+    ProtocolProcess();
+    G0Command(66, 223, 69, false);
+    G0Command(26.5, 100, 26.7, false);
+    G0Command(150, 0, 145, false);
+    G0Command(190, -160, 94, false);
+    ProtocolProcess();
+    G0Command(188, -97, -8, false);
+    idlePos();
 }

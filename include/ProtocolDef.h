@@ -23,7 +23,8 @@
 
 #define SYNC_BYTE   0xAA
 
-#define MAX_PAYLOAD_SIZE 64                                // Minus 1 for not larger than SYNC_BYTE
+#define MAX_PAYLOAD_SIZE 64  
+                           // Minus 1 for not larger than SYNC_BYTE
 
 #pragma pack(push)
 #pragma pack(1)
@@ -70,6 +71,8 @@ typedef struct tagProtocolHandler {
     RingBuffer txPacketQueue;
     RingBuffer rxPacketQueue;
 }ProtocolHandler;
+
+
 
 #pragma pack(pop)
 
