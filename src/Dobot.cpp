@@ -11,7 +11,7 @@
 #define NEUTRAL 255
 
 
-extern uint8_t nb_new_instruction;
+
 
 
 float degToRad(float deg){
@@ -479,6 +479,8 @@ int Dobot::SetPTPCmd(bool isQueued)
 
     MessageWrite(&_gSerialProtocolHandler, &tempMessage);
 
+    nb_new_instruction++;
+
     return true;
 }
 
@@ -592,7 +594,7 @@ int Dobot::StopQueueExec(){
 }
 
 
-int Dobot::available(){
+bool Dobot::available(){
     if(instructionsQueue.size()==0) return true;
     else return false;
 }
