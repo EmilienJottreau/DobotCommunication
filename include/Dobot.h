@@ -47,6 +47,9 @@ class Dobot{
 
         DobotOrigin origin;
 
+        Pose previousPose;
+        Pose initPos;   //POSITION DE REPOS DU ROBOT (en dehors de la zone de travail)
+
         int joystickXState;
         int joystickYState;
 
@@ -71,6 +74,7 @@ class Dobot{
         PTPCmd gPTPCmd;
         PTPJumpParams gptpJumpParams;
         uint64_t queuedCmdIndex;
+        Pose pose;
 
         CPCmd gCPCmd;
 
@@ -129,6 +133,9 @@ class Dobot{
         ** SYNCHRONIZATION function
         *********************************************************************************************************/
         bool available();
+        void getPose(Pose *PoseParam);
+        void InitPos();
+        void goToPreviousPos();
 
         /*********************************************************************************************************
         ** COMPLEX MOVEMENT function
@@ -154,6 +161,6 @@ class Dobot{
         ** Compute function
         *********************************************************************************************************/
        void transformFcoordsToDobotCoords(float *x, float *y, float *z);
-       
+
 
 };

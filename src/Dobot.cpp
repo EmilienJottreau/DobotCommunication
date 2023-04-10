@@ -940,3 +940,24 @@ void Dobot::danse() {
     G0Command(188, -97, -8, false);
     idlePos();
 }
+
+void Dobot::getPose(Pose *PoseParam){
+    Message tempMessage;
+
+    memset(&tempMessage, 0, sizeof(Message));
+    tempMessage.id = ProtocolGetPose;
+    tempMessage.rw = false;
+    tempMessage.isQueued = 0;
+    tempMessage.paramsLen = sizeof(PoseParam);
+    memcpy(tempMessage.params, (uint8_t *)PoseParam, tempMessage.paramsLen);
+
+    MessageWrite(&_gSerialProtocolHandler, &tempMessage);
+}
+
+void Dobot::InitPos(){
+   G0Command(initPos.x, initPos.y, initPos.z, true); 
+}
+
+void Dobot::goToPreviousPos(){
+    G0Command(pose.x, pose.y, pose.z, true);
+}

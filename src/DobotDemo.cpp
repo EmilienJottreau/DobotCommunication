@@ -40,6 +40,7 @@
 #define SIMPLE_PIN2 28
 #define SIMPLE_PIN3 24
 #define ENSEMBLE_PIN 25
+#define ORDO_PIN -1
 
 #define TESTGCODE 29
 
@@ -72,6 +73,7 @@ unsigned long previousActivation4=0;
 unsigned long previousActivation5=0;
 unsigned long previousActivation6=0;
 unsigned long previousActivation7=0;
+unsigned long previousActivation8=0;
 unsigned long previousHomeActivation=0;
 unsigned long previousStartStopActivation=0;
 unsigned long previousClearAlarm=0;
@@ -104,6 +106,11 @@ Dobot dobot3(DOBOT_3);
 
 //gpr::gcode_program p;
 int test=0;
+bool demo = false;
+uint8_t semaphore = 1;
+Dobot *dobots[] = {&dobot1, &dobot2, &dobot3};
+uint16_t index_ordo = 0;
+gpr::gcode_program p;
 
 
 void clearQueue() {
@@ -460,6 +467,55 @@ void loop() {
   if(draw_enabled && dobot1.available() && dobot2.available() && dobot3.available()){
     drawNext(draw_index);
     draw_index++;
+  }
+
+  uint16_t nb_instruction[] = {dobot1.prog.num_blocks() + dobot2.prog.num_blocks() + dobot3.prog.num_blocks(), dobot1.prog.num_blocks(), dobot2.prog.num_blocks(), dobot3.prog.num_blocks()};
+  /*------------------------------------------------------------------------------
+  dobot1.prog.num_blocks(); //Total
+  dobot1.actualProgIndex; //Index auquel on est 
+  dobot1.prog.num_blocks() - dobot1.actualProgIndex;  //ce qu'il nous reste
+  ------------------------------------------------------------------------------*/
+  uint8_t ordo[nb_instruction[0]]; // tab de ordonnencement des dobots. Ex: [1,1,2,0,0,1,0,2,2,...]
+  if (digitalReadMaison(ORDO_PIN) && millis() - previousActivation8 > securityTime)
+  {
+    previousActivation8 = millis();
+    unsigned int i = 0;
+    demo = true;
+    index_ordo = 0;
+    while (i < nb_instruction[0])
+    {
+      uint8_t r = random(0, 2); // Choisi un robot aléatoirement qui a encore des tâches à faire
+      if (nb_instruction[r] > 0)
+      {
+        nb_instruction[r]--;
+        ordo[i] = r;
+        i++;
+      }
+    }
+  }
+
+  if (demo == true)
+  {
+    if (semaphore == 1)
+    {
+      semaphore = 0;
+      dobots[ordo[index_ordo]]->goToPreviousPos();
+      do
+      {
+        dobots[ordo[index_ordo]]->nextGCodeInstruction();
+        index_ordo++;
+      } while (ordo[index_ordo == ordo[index_ordo - 1]]);
+      //dobots[ordo[index_ordo]].pose = dobots[ordo[index_ordo]].getPose(&dobot1.pose);
+      dobots[ordo[index_ordo]]->getPose(&dobot1.pose); //On prend la nouvelle position du robot
+      dobots[ordo[index_ordo]]->InitPos();
+    }
+    if(semaphore == 0 && dobots[ordo[index_ordo]]->available())
+    {
+      semaphore = 1;
+      if(index_ordo == nb_instruction[0]){
+        demo = false;
+      }
+    }
   }
   
 
