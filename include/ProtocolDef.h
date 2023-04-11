@@ -43,7 +43,7 @@
 #define GetCPParams 90
 #define GetARCParams 100
 
-// Just for easy use of this protocol
+// Just for easy use of this protocol (size 66o)
 typedef struct tagMessage {
     uint8_t id;
     uint8_t rw;
@@ -52,18 +52,20 @@ typedef struct tagMessage {
     uint8_t params[MAX_PAYLOAD_SIZE - 2];
 }Message;
 
-// Packet header
+// Packet header (size 3o)
 typedef struct tagPacketHeader {
     uint8_t syncBytes[2];
     uint8_t payloadLen;
 }PacketHeader;
 
+//(size 64o)
 typedef struct tagPacketPayload {
     uint8_t id;
     uint8_t ctrl;
     uint8_t params[MAX_PAYLOAD_SIZE - 2];
 }PacketPayload;
 
+//(size 68o)
 typedef struct tagPacket {
     PacketHeader header;
     PacketPayload payload;
@@ -72,6 +74,7 @@ typedef struct tagPacket {
 
 typedef void (*SendFunc)(void);
 
+//(size ~336o)
 typedef struct tagProtocolHandler {
     // For hardware
     RingBuffer txRawByteQueue;
@@ -86,12 +89,14 @@ typedef struct tagProtocolHandler {
     RingBuffer rxPacketQueue;
 }ProtocolHandler;
 
+//(size 12o)
 typedef struct tagPTPJump2Params {
 	float startjumpHeight;//Movement of the starting lifting height in Jump mode
 	float endJumpHeight; //Movement of the end lifting height in Jump mode
 	float zLimit; //Movement of the maximum lifting height in Jump mode
 } PTPJump2Params;
 
+//(size 32o)
 typedef struct tagPose
 {
 	float x;             // Robotic arm coordinate system x
@@ -101,6 +106,7 @@ typedef struct tagPose
 	float jointAngle[4]; // Robotic arm 4 axis(The basement, rear arm, forearm,EndEffector) angles
 } Pose;
 
+//(size 16o)
 typedef struct tagHOMEParams {
 	float x;
 	float y;
@@ -109,28 +115,20 @@ typedef struct tagHOMEParams {
 } HOMEParams;
 
 
-
-
-
+//(size 8o)
 typedef struct tagJOGLParams {
 	float velocity; // Joint velocity of JOGL
 	float acceleration; // Joint acceleration of JOGL
 }JOGLParams;
 
 
-
-
-
-
-
-
-
+//(size 8o)
 typedef struct tagPTPLParams {
 	float velocity; // In PTP mode, joint velocity of 4 axis
 	float acceleration; // In PTP mode, joint acceleration of 4 axis
 } PTPLParams;
 
-
+//(size 13o)
 typedef struct tagCPParams {
 	float planAcc; // Maximum planned accelerations
 	float junctionVel; // Maximum junction acceleration
@@ -141,6 +139,7 @@ typedef struct tagCPParams {
 	uint8_t realTimeTrack; //0: Non-real time mode; 1: Real time mode
 } CPParams;
 
+//(size 16o)
 typedef struct tagARCParams {
 	float xyzVelocity; // Cartesian coordinate axis (X,Y,Z) velocity
 	float rVelocity; // Cartesian coordinate axis (R) velocity

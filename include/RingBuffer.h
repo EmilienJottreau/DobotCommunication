@@ -29,6 +29,7 @@ extern "C" {
 #pragma pack(push)
 #pragma pack(1)
 
+//(size og void*? 4o?, ~41o)
 typedef struct tagRingBuffer {
     // Static property
     void *addr;

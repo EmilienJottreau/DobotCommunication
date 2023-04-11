@@ -8,13 +8,14 @@
 
 
 
-
+//(size 1o?)
 typedef enum  tagDobotNumber{
     DOBOT_1,
     DOBOT_2,
     DOBOT_3,
 }DobotNumber;
 
+//(size 16o)
 typedef struct tagDobotOrigin{
     float x;
     float y;
@@ -22,110 +23,93 @@ typedef struct tagDobotOrigin{
     float theta;
 }DobotOrigin;
 
-typedef struct TagPoint2D{
+//(size 12o)
+typedef struct TagPoint3D{
   float x;
   float y;
   float z;
-}Point2D;
+}Point3D;
 
 #define RAW_BYTE_BUFFER_SIZE 256
 #define PACKET_BUFFER_SIZE  4
 
+//(size 1488+)
 class Dobot{
 
 
     private:
-        DobotNumber _number;
+        DobotNumber _number;//1
+
         // Serial
-        uint8_t gSerialTXRawByteBuffer[RAW_BYTE_BUFFER_SIZE];
-        uint8_t gSerialRXRawByteBuffer[RAW_BYTE_BUFFER_SIZE];
-        Packet gSerialTXPacketBuffer[PACKET_BUFFER_SIZE];
-        Packet gSerialRXPacketBuffer[PACKET_BUFFER_SIZE];
-        int idPrecedent;
-        uint64_t param;
-        uint64_t param246Precedent;
+        uint8_t gSerialTXRawByteBuffer[RAW_BYTE_BUFFER_SIZE];//256
+        uint8_t gSerialRXRawByteBuffer[RAW_BYTE_BUFFER_SIZE];//256
+        Packet gSerialTXPacketBuffer[PACKET_BUFFER_SIZE];//272
+        Packet gSerialRXPacketBuffer[PACKET_BUFFER_SIZE];//272
+        uint8_t idPrecedent;//1
+        uint64_t param;//8
+        uint64_t param246Precedent;//8
 
-        DobotOrigin origin;
+        DobotOrigin origin;//16
 
-        Pose previousPose;
-        Pose initPos;   //POSITION DE REPOS DU ROBOT (en dehors de la zone de travail)
 
-        int joystickXState;
-        int joystickYState;
-
-        uint8_t nb_new_instruction;
+        uint8_t nb_new_instruction;//1
 
         
 
     public:
-        std::vector<uint64_t> instructionsQueue;
-        HardwareSerial* _serial;
-        ProtocolHandler _gSerialProtocolHandler;
-        EndEffectorParams gEndEffectorParams;
+        std::vector<uint64_t> instructionsQueue;//inconnue
+        HardwareSerial* _serial;//4?
+        ProtocolHandler _gSerialProtocolHandler;//336
+
         //attributes related to movement
-        JOGJointParams gJOGJointParams;
-        JOGCoordinateParams gJOGCoordinateParams;
-        JOGCommonParams gJOGCommonParams;
-        JOGCmd gJOGCmd;
 
-        PTPJointParams gPTPJointParams;
-        PTPCoordinateParams gPTPCoordinateParams;
-        PTPCommonParams gPTPCommonParams;
-        PTPCmd gPTPCmd;
-        PTPJumpParams gptpJumpParams;
-        uint64_t queuedCmdIndex;
-        Pose pose;
 
-        CPCmd gCPCmd;
+        PTPCmd gPTPCmd;//17
+        JOGCmd gJOGCmd;//2
+        CPCmd gCPCmd;//17
 
-        HOMECmd homeCmd;
 
-        gpr::gcode_program prog;
-        int actualProgIndex;
+        uint64_t queuedCmdIndex;//8
+        gcode::gcode_program prog;//inconnue
+        uint8_t actualProgIndex;//1
+
+        Point3D posPrecedente;//12 (position en repere dobot)
         
         Dobot(DobotNumber number);
         void ProtocolInit(void);
         void ProtocolProcess(void);
-        void InitRam(void);
-        //mettre toutes les commandes possibles dedans (command.cpp + commandExented.cpp et faire this.gSerialProtocolHandler)
-        //...
 
 
-        /*********************************************************************************************************
-        ** End effector function
-        *********************************************************************************************************/
-        int SetEndEffectorParams(bool isQueued);
-        int SetEndEffectorLaser(bool on, bool isQueued);
-        int SetEndEffectorSuctionCup(bool suck, bool isQueued);
-        int SetEndEffectorGripper(bool grip, bool isQueued);
+        void setUp(JOGJointParams *gJOGJointParams, JOGCommonParams *gJOGCommonParams, JOGCoordinateParams *gJOGCoordinateParams);
+
+        
+
+        void serialRead(void);
+
+
 
         /*********************************************************************************************************
         ** JOG function
         *********************************************************************************************************/
-        int SetJOGJointParams(bool isQueued);
-        int SetJOGCoordinateParams(bool isQueued);
-        int SetJOGCommonParams(bool isQueued);
-        int SetJOGCmd(bool isQueued);
+        void SetJOGCmd(bool isQueued);
 
         /*********************************************************************************************************
         ** PTP function
         *********************************************************************************************************/
-        int SetPTPJointParams(bool isQueued);
-        int SetPTPCoordinateParams(bool isQueued);
-        int SetPTPJumpParams(bool isQueued);
-        int SetPTPCommonParams(bool isQueued);
-        int SetPTPCmd(bool isQueued);
-        int SetCPCmd();
+        void SetPTPCmd(bool isQueued);
+        void SetCPCmd();
         
         /*********************************************************************************************************
         ** EXTENDED function
         *********************************************************************************************************/
-        int ClearDobotBuffer(bool isQueued);
-        int GetQueuedCmdCurrentIndex(bool isQueued, uint64_t *queuedCmdIndex);
-        int SetHOMECmd(bool isQueued);
-        int ClearAllAlarms();
-        int StartQueueExec();
-        int StopQueueExec();
+        void ClearDobotBuffer(bool isQueued);
+        void GetQueuedCmdCurrentIndex(bool isQueued, uint64_t *queuedCmdIndex);
+        void SetHOMECmd(bool isQueued);
+        void ClearAllAlarms();
+        void StartQueueExec();
+        void StopQueueExec();
+
+        void storePreviousPos(void);
 
 
 
@@ -133,29 +117,26 @@ class Dobot{
         ** SYNCHRONIZATION function
         *********************************************************************************************************/
         bool available();
-        void getPose(Pose *PoseParam);
-        void InitPos();
         void goToPreviousPos();
 
         /*********************************************************************************************************
         ** COMPLEX MOVEMENT function
         *********************************************************************************************************/
-        int firstMove();
-        int joyStickMove(int posX, int posY);
+        void firstMove();
         void idlePos();
         void danse();
-        void drawSegment(Point2D *Start, Point2D *End);
+        void drawSegment(Point3D *Start, Point3D *End);
         /*********************************************************************************************************
         ** G-CODE function
         *********************************************************************************************************/
        int nextGCodeInstruction();
-       void GCodeInterpretation();
+       //void GCodeInterpretation();
 
 
        void G0Command(float x, float y, float z, bool jump);
-       void G0Command(Point2D *point, bool jump);
+       void G0Command(Point3D *point, bool jump);
        void G1Command(float x, float y, float z);
-       void G1Command(Point2D *point);
+       void G1Command(Point3D *point);
 
         /*********************************************************************************************************
         ** Compute function

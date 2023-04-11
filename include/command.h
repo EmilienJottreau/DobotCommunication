@@ -21,6 +21,8 @@
 *********************************************************************************************************/
 
 #include <stdint.h>
+#include "ProtocolDef.h"
+#include "ProtocolID.h"
 
 /*********************************************************************************************************
 ** Data structure
@@ -55,37 +57,44 @@ enum{
     COORDINATE_MODEL,  
     JOINT_MODEL  
 };
+//(size 12o)
 typedef struct tagEndEffectorParams {
     float xBias;
     float yBias;
     float zBias;
 }EndEffectorParams;
 
+//(size 64o)
 typedef struct tagJOGJointParams {
     float velocity[4];
     float acceleration[4];
 }JOGJointParams;
 
+//(size 64o)
 typedef struct tagJOGCoordinateParams {
     float velocity[4];
     float acceleration[4];
 }JOGCoordinateParams;
 
+//(size 8o)
 typedef struct tagJOGCommonParams {
     float velocityRatio;
     float accelerationRatio;
 }JOGCommonParams;
 
+//(size 2o)
 typedef struct tagJOGCmd {
     uint8_t isJoint;
     uint8_t cmd;
 }JOGCmd;
 
+//(size 64o)
 typedef struct tagPTPJointParams {
     float velocity[4];
     float acceleration[4];
 }PTPJointParams;
 
+//(size 16o)
 typedef struct tagPTPCoordinateParams {
     float xyzVelocity;
     float rVelocity;
@@ -93,16 +102,19 @@ typedef struct tagPTPCoordinateParams {
     float rAcceleration;
 }PTPCoordinateParams;
 
+//(size 8o)
 typedef struct tagPTPJumpParams {
     float jumpHeight;
     float maxJumpHeight;
 }PTPJumpParams;
 
+//(size 8o)
 typedef struct tagPTPCommonParams {
     float velocityRatio;
     float accelerationRatio;
 }PTPCommonParams;
 
+//(size 17o)
 typedef struct tagPTPCmd {
 uint8_t ptpMode;
     float x;
@@ -111,12 +123,13 @@ uint8_t ptpMode;
     float r;
 }PTPCmd;
 
+//(size 4o)
 typedef struct tagHOMECmd {
 uint32_t reserved; // Reserved for future use
 } HOMECmd;
 
 
-
+//(size 17o)
 typedef struct tagCPCmd {
     uint8_t cpMode; //CP mode, 0: Relative mode 1: Absolute mode
     float x; //x-coordinate increment(Relative mode) / x-coordinate(Absolute mode)
@@ -127,6 +140,29 @@ union {
     float power; //Laser power
  };
 } CPCmd;
+
+/*********************************************************************************************************
+** End effector function
+*********************************************************************************************************/
+void SetEndEffectorParams(ProtocolHandler *_gSerialProtocolHandler, EndEffectorParams *gEndEffectorParams, bool isQueued);
+void SetEndEffectorLaser(ProtocolHandler *_gSerialProtocolHandler, bool on, bool isQueued);
+void SetEndEffectorSuctionCup(ProtocolHandler *_gSerialProtocolHandler, bool suck, bool isQueued);
+void SetEndEffectorGripper(ProtocolHandler *_gSerialProtocolHandler, bool grip, bool isQueued);
+
+/*********************************************************************************************************
+** JOG function
+*********************************************************************************************************/
+void SetJOGJointParams(ProtocolHandler *_gSerialProtocolHandler, JOGJointParams *gJOGJointParams, bool isQueued);
+void SetJOGCoordinateParams(ProtocolHandler *_gSerialProtocolHandler, JOGCoordinateParams *gJOGCoordinateParams, bool isQueued);
+void SetJOGCommonParams(ProtocolHandler *_gSerialProtocolHandler, JOGCommonParams *gJOGCommonParams, bool isQueued);
+
+/*********************************************************************************************************
+** PTP function
+*********************************************************************************************************/
+void SetPTPJointParams(ProtocolHandler *_gSerialProtocolHandler, PTPJointParams *gPTPJointParams, bool isQueued);
+void SetPTPCoordinateParams(ProtocolHandler *_gSerialProtocolHandler, PTPCoordinateParams *gPTPCoordinateParams, bool isQueued);
+void SetPTPJumpParams(ProtocolHandler *_gSerialProtocolHandler, PTPJumpParams *gptpJumpParams, bool isQueued);
+void SetPTPCommonParams(ProtocolHandler *_gSerialProtocolHandler, PTPCommonParams *gPTPCommonParams, bool isQueued);
 
 
 #pragma pack(pop)

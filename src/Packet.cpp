@@ -17,6 +17,7 @@
 **--------------------------------------------------------------------------------------------------------
 *********************************************************************************************************/
 #include "Packet.h"
+#include "HardwareSerial.h"
 #include <stdio.h>
 
 /*********************************************************************************************************
@@ -109,7 +110,7 @@ static void PacketReadProcess(ProtocolHandler *protocolHandler)
         //printf("(1), id : %x\n", &packet->payload.id);
 
         for (uint32_t i = 0; i < (uint32_t)(payloadLen - 2); i++) {
-            if(payloadLen==0) printf("i : %d id : %d \n", i, packet->payload.id);
+            if(payloadLen==0) continue;
             RingBufferDequeue(rxRawByteQueue, &packet->payload.params[i]);
         }
         RingBufferDequeue(rxRawByteQueue, &packet->checksum);
@@ -159,17 +160,19 @@ static void PacketWriteProcess(ProtocolHandler *protocolHandler)
             if(packet->payload.id == 246){
                 continue;
             } else {
-                printf("Tx Packet: ");
+                Serial.print(F("Tx Packet: "));
 
                 //printf("Packet header:%02x %02x, id:%d, ctrl:%02x, payloadLen:%d\r\n", packet->header.syncBytes[0],
                 //        packet->header.syncBytes[1],packet->payload.id, packet->payload.ctrl, packet->header.payloadLen);
-                printf("[id:%d, ",packet->payload.id);
-                printf("params: ");
+                Serial.print(F("[id: "));
+                Serial.print(packet->payload.id);
+                
+                Serial.print(F(" params: "));
                 for(int i=0; i<packet->header.payloadLen-2; i++)
                 {
-                    printf("%02x ", packet->payload.params[i]);
+                    printf("%02x ", packet->payload.params[i]);//si je fais le F() avec le serial print, ils seront plus en hexa donc pour 3 char ca va
                 }
-                printf("]\n");
+                Serial.println(F("]"));
                 //printf("\r\nchecksum:%02x\r\n", packet->checksum);
                 //nb_new_instruction++;
             }

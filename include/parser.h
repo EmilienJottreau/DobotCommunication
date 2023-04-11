@@ -4,12 +4,18 @@
 
 #include "gcode_program.h"
 
-namespace gpr {
 
-  std::vector<std::string> lex_block(const std::string& block_text);
 
-  gcode_program parse_gcode(const std::string& program_text);
 
-  gcode_program parse_gcode_saving_block_text(const std::string& program_text);
+
+
+namespace gcode {
+
+	gcode_program parse_gcode(const std::string& program_text);
+
+
+	gcode_program parse_gcode_with_char(const char* char_gcode);
+
+	void parseNext20(gcode_program* prog, const char* char_gcode, uint16_t* index);
 
 }

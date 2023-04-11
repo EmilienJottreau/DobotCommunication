@@ -6,6 +6,9 @@
         "list": "cpp",
         "string": "cpp",
         "iosfwd": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "wiring_private.h": "c",
+        "cstdio": "cpp",
+        "istream_helpers": "cpp"
     }
 }

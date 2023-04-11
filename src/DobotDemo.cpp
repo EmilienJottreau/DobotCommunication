@@ -21,9 +21,10 @@
 #include "Dobot.h"
 #include "FlexiTimer2.h"
 #include "MemoryFree.h"
-#include "hardcoded-g-code.h"
 #include "parser.h" 
-#include "string" 
+#include <string> 
+
+#include "instruction.h"
 
 
 //Set Serial TX&RX Buffer Size
@@ -49,14 +50,6 @@
 #define STATUSLED 12
 
 
-//#define JOG_STICK
-#define JOYSTICKX A0 //care it's analog pin
-#define JOYSTICKY A1 //care it's analog pin
-#define JOYSTICKBUTTON 53
-#define ENABLEJOYSTICK 29
-
-bool joyStickDobot = 0;
-unsigned long previousActivationJoyStickButton=0;
 
 bool stateStartStop = 1; //Start=1, Stop=0
 
@@ -83,40 +76,49 @@ const unsigned int securityTime=1000;
 bool draw_enabled = false;
 int draw_index=0;
 
-Point2D A;
-Point2D B;
-Point2D C;
-Point2D D;
-Point2D E;
-Point2D F;
-Point2D G;
-Point2D H;
-Point2D I;
-Point2D J;
+Point3D A;
+Point3D B;
+Point3D C;
+Point3D D;
+Point3D E;
+Point3D F;
+Point3D G;
+Point3D H;
+Point3D I;
+Point3D J;
+
+
+JOGJointParams gJOGJointParams;
+JOGCoordinateParams gJOGCoordinateParams;
+JOGCommonParams gJOGCommonParams;
+PTPCoordinateParams gPTPCoordinateParams;
+PTPCommonParams gPTPCommonParams;
+//PTPJumpParams gptpJumpParams;
 
 
 bool digitalReadMaison(unsigned char pin);
 void pinSwitchPullUp(unsigned char pin);
 void ActionSimple();
 void drawNext(int index);
+void InitRam(void);
 
 Dobot dobot1(DOBOT_1);
 Dobot dobot2(DOBOT_2);
 Dobot dobot3(DOBOT_3);
 
-//gpr::gcode_program p;
+
 int test=0;
 bool demo = false;
 uint8_t semaphore = 1;
 Dobot *dobots[] = {&dobot1, &dobot2, &dobot3};
 uint16_t index_ordo = 0;
-gpr::gcode_program p;
+
 
 
 void clearQueue() {
   //printf("==Debut Interuption\n");
   //dobot1.ClearAllAlarms();
-  printf("#STOP & CLEAR QUEUE\n");
+  Serial.println(F("#STOP & CLEAR QUEUE"));
   dobot1.StopQueueExec(); // ca marche
   dobot1.ClearDobotBuffer(0);
   dobot1.ClearAllAlarms();
@@ -148,27 +150,10 @@ void clearQueue() {
 ** Output parameters:   
 ** Returned value:      
 *********************************************************************************************************/
-
-//TODO mettre le serial read dans classe dobot
 void Serialread() {
-  while (Serial1.available()) {
-    uint8_t data = Serial1.read();
-    if (RingBufferIsFull(&dobot1._gSerialProtocolHandler.rxRawByteQueue) == false) {
-      RingBufferEnqueue(&dobot1._gSerialProtocolHandler.rxRawByteQueue, &data);
-    }
-  }
-  while (Serial2.available()) {
-    uint8_t data = Serial2.read();
-    if (RingBufferIsFull(&dobot2._gSerialProtocolHandler.rxRawByteQueue) == false) {
-      RingBufferEnqueue(&dobot2._gSerialProtocolHandler.rxRawByteQueue, &data);
-    }
-  }
-  while (Serial3.available()) {
-    uint8_t data = Serial3.read();
-    if (RingBufferIsFull(&dobot3._gSerialProtocolHandler.rxRawByteQueue) == false) {
-      RingBufferEnqueue(&dobot3._gSerialProtocolHandler.rxRawByteQueue, &data);
-    }
-  }
+    dobot1.serialRead();
+    dobot2.serialRead();
+    dobot3.serialRead();
 }
 /*********************************************************************************************************
 ** Function name:       Serial_putc
@@ -216,8 +201,6 @@ void setup() {
   pinSwitchPullUp(SIMPLE_PIN1);
   pinSwitchPullUp(SIMPLE_PIN2);
   pinSwitchPullUp(ENSEMBLE_PIN);
-  pinSwitchPullUp(JOYSTICKBUTTON);
-  pinSwitchPullUp(ENABLEJOYSTICK);
   pinSwitchPullUp(HOME_PIN);
   pinSwitchPullUp(START_STOP_PIN);
   pinSwitchPullUp(CLEAR_ALARM_PIN);
@@ -225,112 +208,28 @@ void setup() {
 
   count = 0;
   attachInterrupt(digitalPinToInterrupt(2), clearQueue, RISING);
+  InitRam();
+
   dobot1.ProtocolInit();
-  dobot1.InitRam();
-  dobot1.SetJOGJointParams(true);
-  dobot1.SetJOGCommonParams(true);
-  dobot1.SetJOGCoordinateParams(true);
+  dobot1.setUp(&gJOGJointParams, &gJOGCommonParams, &gJOGCoordinateParams);
   dobot1.ProtocolProcess();
-  printf("FIN SETUP DOBOT 1! \n");
-  dobot2.InitRam();
+  Serial.println(F("FIN SETUP DOBOT 1!"));
+
   dobot2.ProtocolInit();
-  dobot2.SetJOGJointParams(true);
-  dobot2.SetJOGCommonParams(true);
-  dobot2.SetJOGCoordinateParams(true);
+  dobot2.setUp(&gJOGJointParams, &gJOGCommonParams, &gJOGCoordinateParams);
   dobot2.ProtocolProcess();
-  printf("FIN SETUP DOBOT 2! \n");
-  dobot3.InitRam();
+  Serial.println(F("FIN SETUP DOBOT 2!"));
+
+
   dobot3.ProtocolInit();
-  dobot3.SetJOGJointParams(true);
-  dobot3.SetJOGCommonParams(true);
-  dobot3.SetJOGCoordinateParams(true);
+  dobot3.setUp(&gJOGJointParams, &gJOGCommonParams, &gJOGCoordinateParams);
   dobot3.ProtocolProcess();
-  printf("FIN SETUP DOBOT 3! \n");
+  Serial.println(F("FIN SETUP DOBOT 3!"));
   clearQueue();
   
-  printf("Test coords \n");
+  Serial.println(F("Test coords"));
 
-  /*
-  float x;
-  float y;
-  float z;
-  x = 148;
-  y = 105;
-  z = 0;
-
-  dobot1.transformFcoordsToDobotCoords(&x, &y, &z);
-  printf("dobot 1: x: ");
-  Serial.print(x);
-  printf(" y: "); 
-  Serial.print(y);
-  printf(" z: "); 
-  Serial.println(z);
-  x = 148;
-  y = 105;
-  z = 0;
-
-  dobot2.transformFcoordsToDobotCoords(&x, &y, &z);
-  printf("dobot 2: x: ");
-  Serial.print(x);
-  printf(" y: "); 
-  Serial.print(y);
-  printf(" z: "); 
-  Serial.println(z);
-
-  x = 148;
-  y = 105;
-  z = 0;
-
-  dobot3.transformFcoordsToDobotCoords(&x, &y, &z);
-  printf("dobot 3: x: ");
-  Serial.print(x);
-  printf(" y: "); 
-  Serial.print(y);
-  printf(" z: "); 
-  Serial.println(z);
-
-  x = 0;
-  y = 105;
-  z = 0;
-
-  dobot1.transformFcoordsToDobotCoords(&x, &y, &z);
-  printf("dobot 1: x: ");
-  Serial.print(x);
-  printf(" y: "); 
-  Serial.print(y);
-  printf(" z: "); 
-  Serial.println(z);
-  x = 0;
-  y = 105;
-  z = 0;
-
-  dobot2.transformFcoordsToDobotCoords(&x, &y, &z);
-  printf("dobot 2: x: ");
-  Serial.print(x);
-  printf(" y: "); 
-  Serial.print(y);
-  printf(" z: "); 
-  Serial.println(z);
-
-  x = 0;
-  y = 105;
-  z = 0;
-
-  dobot3.transformFcoordsToDobotCoords(&x, &y, &z);
-  printf("dobot 3: x: ");
-  Serial.print(x);
-  printf(" y: "); 
-  Serial.print(y);
-  printf(" z: "); 
-  Serial.println(z);*/
-
-
-  ////PARSE G CODE PROGRAMME
-  //printf("memoire avant le parse : %d\n",freeMemory());
-  //dobot1.prog = gpr::parse_gcode(hardcoded_prog);
-  //printf("programme gcode parsé\n");
-  //printf("memoire apres le parse : %d\n",freeMemory());
-
+  
   A.x = 92;
   A.y = 65;
   A.z = 0;
@@ -370,7 +269,26 @@ void setup() {
   J.x = 166;
   J.y = 134;
   J.z = 0;
+
+  /*Serial.print(F("memory free : "));
+  Serial.println(freeMemory());
   
+  Serial.println(F("debut parse gcode 1"));
+
+  gcode::parseNext20(&dobot1.prog, robot_1, &index_robot_1);
+
+
+
+  Serial.println(F("fin parse gcode 1"));*/
+
+  Serial.print(F("taille du programme : "));
+  Serial.println(dobot1.prog.num_blocks());
+
+
+  Serial.print(F("memory free : "));
+  Serial.println(freeMemory());
+  
+  Serial.println(F("FIN DU SETUP"));
 }
 /*********************************************************************************************************
 ** Function name:       loop
@@ -397,13 +315,13 @@ void loop() {
 
   if(digitalReadMaison(START_STOP_PIN) && millis() - previousStartStopActivation > securityTime*0.5){
     if(stateStartStop==1){
-      printf("@STOP Queue\n");
+      Serial.println(F("@STOP Queue"));
       dobot1.StopQueueExec();
       dobot2.StopQueueExec();
       dobot3.StopQueueExec();
     }
     else{
-      printf("@START Queue\n");
+      Serial.println(F("@START Queue"));
       dobot1.StartQueueExec();
       dobot2.StartQueueExec();
       dobot3.StartQueueExec();
@@ -506,8 +424,8 @@ void loop() {
         index_ordo++;
       } while (ordo[index_ordo == ordo[index_ordo - 1]]);
       //dobots[ordo[index_ordo]].pose = dobots[ordo[index_ordo]].getPose(&dobot1.pose);
-      dobots[ordo[index_ordo]]->getPose(&dobot1.pose); //On prend la nouvelle position du robot
-      dobots[ordo[index_ordo]]->InitPos();
+      dobots[ordo[index_ordo]]->storePreviousPos(); //On prend la nouvelle position du robot
+      dobots[ordo[index_ordo]]->idlePos();
     }
     if(semaphore == 0 && dobots[ordo[index_ordo]]->available())
     {
@@ -521,11 +439,7 @@ void loop() {
 
   //end of loop
   digitalWrite(STATUSLED,stateStartStop);
-  //ask dobot for their command index
-  float x = 0;
-  float y = 0;
-  float z = 0;
-  int j = 0;
+ 
 
   dobot1.GetQueuedCmdCurrentIndex(0,&dobot1.queuedCmdIndex);
   dobot2.GetQueuedCmdCurrentIndex(0,&dobot2.queuedCmdIndex);
@@ -537,6 +451,7 @@ void loop() {
 
   delay(100);
   
+  //printf();
 }
 
 
@@ -576,5 +491,47 @@ void drawNext(int index){
     dobot1.idlePos();
     draw_enabled = false;
   }
+
+}
+
+
+void InitRam(){
+    //Set JOG Model
+    gJOGJointParams.velocity[0] = 100;
+    gJOGJointParams.velocity[1] = 100;
+    gJOGJointParams.velocity[2] = 100;
+    gJOGJointParams.velocity[3] = 100;
+    gJOGJointParams.acceleration[0] = 80;
+    gJOGJointParams.acceleration[1] = 80;
+    gJOGJointParams.acceleration[2] = 80;
+    gJOGJointParams.acceleration[3] = 80;
+
+    gJOGCoordinateParams.velocity[0] = 100;
+    gJOGCoordinateParams.velocity[1] = 100;
+    gJOGCoordinateParams.velocity[2] = 100;
+    gJOGCoordinateParams.velocity[3] = 100;
+    gJOGCoordinateParams.acceleration[0] = 80;
+    gJOGCoordinateParams.acceleration[1] = 80;
+    gJOGCoordinateParams.acceleration[2] = 80;
+    gJOGCoordinateParams.acceleration[3] = 80;
+
+    gJOGCommonParams.velocityRatio = 100;
+    gJOGCommonParams.accelerationRatio = 80;
+
+
+
+
+
+    //Set PTP Model
+    gPTPCoordinateParams.xyzVelocity = 100;
+    gPTPCoordinateParams.rVelocity = 100;
+    gPTPCoordinateParams.xyzAcceleration = 80;
+    gPTPCoordinateParams.rAcceleration = 80;
+
+    gPTPCommonParams.velocityRatio = 50;
+    gPTPCommonParams.accelerationRatio = 50;
+
+
+
 
 }
