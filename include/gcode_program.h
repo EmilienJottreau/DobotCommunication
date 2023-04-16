@@ -1,6 +1,6 @@
 #include <vector>
-#include <HardwareSerial.h>
 
+#include <Arduino.h>
 
 namespace gcode {
     class world_address_data {
@@ -15,6 +15,12 @@ namespace gcode {
 
         world_address_data(char l, float f) : letter(l) {
             val = f;
+        }
+
+        void printContent(){
+            Serial.print(letter);
+            Serial.print(val);
+            Serial.print(F(" "));
         }
     };
 
@@ -41,10 +47,9 @@ namespace gcode {
 
         }
 
+
         block& operator=(const block& other) {
-            for (size_t i = 0; i < other.addresses.size(); i++) {
-                addresses.push_back(other.addresses[i]);
-            }
+            addresses = other.addresses;
 
             return *this;
         }
@@ -60,6 +65,11 @@ namespace gcode {
                 return addresses[0];
         }
 
+        void printContent(){
+            for(world_address_data w:addresses){
+                w.printContent();
+            }
+        }
 
 
         std::vector<world_address_data>::const_iterator begin() const { return std::begin(addresses); }
@@ -92,34 +102,27 @@ namespace gcode {
         }
 
         void removeFirstBlock() {
-            //blocks.erase(blocks.begin());
-            //blocks.pop_front();
-            std::move(blocks.back());
+            //std::move(blocks.back());
+            for(uint8_t i = 0 ;i < num_blocks()-1;i++){
+                blocks[i] = blocks[i+1];
+            }
+
+            //std::rotate(blocks.begin(), blocks.begin() + 1, blocks.end() );
+            //free(&blocks.back());
             blocks.pop_back();
-            
         }
 
         void addBlocks(const std::vector<block>& new_blocks) {
-            /*Serial.print("nb blocks : ");
-            Serial.println(num_blocks());
-            for(block b:blocks){
-                Serial.print("taille blocks dans add_blocks : ");
-                Serial.println(b.size());
-            } 
-            for(block b:new_blocks){
-                Serial.print("taille new_blocks dans add_blocks : ");
-                Serial.println(b.size());
-            }   
-            std::vector<block> temp_blocks = blocks;
-            temp_blocks.insert(temp_blocks.end(), new_blocks.begin(), new_blocks.end());
-            blocks = temp_blocks;*/
             for(block b:new_blocks){
                 blocks.push_back(b);
             }
-            /*for(block b:blocks){
-                Serial.print("taille blocks apres add_blocks : ");
-                Serial.println(b.size());
-            } */
+        }
+
+        void printContent(){
+            for(block b:blocks){
+                b.printContent();
+                Serial.println(F(" "));
+            }
         }
 
         

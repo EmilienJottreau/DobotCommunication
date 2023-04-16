@@ -8,10 +8,13 @@
 #include <math.h>
 
 
-#define NEUTRAL 255
+#define NB_BLOCKS_MAX 3
+
+#define ERR_OUT_OF_BOUND 2
+#define ERR_TOO_DEEP 3
 
 
-
+#define DEBUG_TEST 0
 
 
 float degToRad(float deg){
@@ -24,7 +27,11 @@ Dobot::Dobot(DobotNumber number){
         _serial = &Serial1;
         origin.x = 160 - 61;
         origin.y = -105;
+        #if DEBUG_TEST
+        origin.z = -36;
+        #else
         origin.z = -56;
+        #endif
         origin.theta = degToRad(0);
     }
     if(number == DOBOT_2){
@@ -32,7 +39,11 @@ Dobot::Dobot(DobotNumber number){
         _serial = &Serial2; 
         origin.x = 270 - 61;
         origin.y = 177;
+        #if DEBUG_TEST
+        origin.z = -36.5;
+        #else
         origin.z = -56.5;
+        #endif
         origin.theta = degToRad(-120);
     }
     if(number == DOBOT_3){
@@ -40,13 +51,22 @@ Dobot::Dobot(DobotNumber number){
         _serial = &Serial3;
         origin.x = 456 - 61;
         origin.y = -76;
+        #if DEBUG_TEST
+        origin.z = -33;
+        #else
         origin.z = -53;
+        #endif
+        //origin.z = -20;
         origin.theta = degToRad(120);
     }
     idPrecedent = 0;
     param246Precedent = 0;
     actualProgIndex = 0;
     nb_new_instruction = 0;
+    posPrecedente.x = 1000;
+    posPrecedente.x = 1000;
+    posPrecedente.x = 60;
+
 }
 
 void Dobot::ProtocolInit(){
@@ -103,7 +123,9 @@ void Dobot::ProtocolProcess(){
             }
             if(message.id == 245){
                 //clear queue
-                instructionsQueue.clear();
+                for(int i =0;i<instructionsQueue.size();i++){
+                    instructionsQueue.pop_back();
+                }
             }
 
             if(message.id == 246) {
@@ -116,10 +138,12 @@ void Dobot::ProtocolProcess(){
                 //printf("\n");
 
                 //a virer apres le debug
-                Serial.print(F("Dobot "));
-                Serial.print(_number+1);
-                Serial.print(F(" instruction queue len : "));
-                Serial.println(instructionsQueue.size());
+                #if 0
+                    Serial.print(F("Dobot "));
+                    Serial.print(_number+1);
+                    Serial.print(F(" instruction queue len : "));
+                    Serial.println(instructionsQueue.size());
+                #endif
                 //printf("Dobot %d  instruction queue len : %d\n", _number+1, instructionsQueue.size());
 
                 int index=-1;
@@ -219,6 +243,9 @@ void Dobot::SetJOGCmd(bool isQueued)
 *********************************************************************************************************/
 void Dobot::SetPTPCmd(bool isQueued)
 {
+    //facteurCorrectif(&gPTPCmd.x , &gPTPCmd.y);
+    CorrectY(&gPTPCmd.y);
+
     Message tempMessage;
 
     memset(&tempMessage, 0, sizeof(Message));
@@ -343,6 +370,20 @@ void Dobot::StopQueueExec(){
 
 }
 
+void Dobot::ForceStopQueueExec(){
+   Message tempMessage;
+
+    memset(&tempMessage, 0, sizeof(Message));
+    tempMessage.id = ProtocolQueuedCmdForceStopExec;
+    tempMessage.rw = true;
+    tempMessage.isQueued = 0;
+    tempMessage.paramsLen = 0;
+    memcpy(tempMessage.params, NULL, tempMessage.paramsLen);
+
+    MessageWrite(&_gSerialProtocolHandler, &tempMessage);
+
+}
+
 
 bool Dobot::available(){
     if(instructionsQueue.size()==0) return true;
@@ -394,7 +435,7 @@ void Dobot::SetCPCmd(){
 }
 
 
-void Dobot::G0Command(float x, float y, float z, bool jump){
+uint8_t Dobot::G0Command(float x, float y, float z, bool jump){
     gPTPCmd.x = x;
     gPTPCmd.y = y;
     gPTPCmd.z = z;
@@ -402,40 +443,144 @@ void Dobot::G0Command(float x, float y, float z, bool jump){
         gPTPCmd.ptpMode = JUMP_XYZ;
     else
         gPTPCmd.ptpMode = MOVJ_XYZ;
+        
+
+    uint8_t accessible = isAccessible(x ,y, z);
+    if(accessible>0){
+        return accessible;
+    }
+
     SetPTPCmd(1);
 
+    posPrecedente.x = x;
+    posPrecedente.y = y;
+    posPrecedente.z = z;
+
+    return 0;
+
+
 }
-void Dobot::G0Command(Point3D *point, bool jump){
+uint8_t Dobot::G0Command(Point3D *point, bool jump){
     float x = point->x;
     float y = point->y;
     float z = point->z;
 
     transformFcoordsToDobotCoords(&x,&y,&z);
 
-    G0Command(x,y ,z , jump);
+    return G0Command(x,y ,z , jump);
 }
 
-void Dobot::G1Command(float x, float y, float z){
+uint8_t Dobot::G1Command(float x, float y, float z){
     gPTPCmd.x = x;
     gPTPCmd.y = y;
     gPTPCmd.z = z;
     //printf("x: %f  y : %f  z: %f",x,y,z);
     gPTPCmd.ptpMode = MOVL_XYZ;
+
+    #if 1
+        Serial.print("X :");
+        Serial.print(x);
+        Serial.print(" Y :");
+        Serial.print(y);
+        Serial.print(" Z :");
+        Serial.println(z);
+    #endif
+
+    uint8_t accessible = isAccessible(x ,y, z);
+    if(accessible>0){
+        return accessible;
+    }
+
+
     SetPTPCmd(1);
+
+    posPrecedente.x = x;
+    posPrecedente.y = y;
+    posPrecedente.z = z;
+
+    return 0;
 }
-void Dobot::G1Command(Point3D *point){
+uint8_t Dobot::G1Command(Point3D *point){
     float x = point->x;
     float y = point->y;
     float z = point->z;
 
     transformFcoordsToDobotCoords(&x,&y,&z);
 
-    G1Command(x,y,z);
+    return G1Command(x,y,z);
 }
 
-int Dobot::nextGCodeInstruction(){
+uint8_t Dobot::G3Command(Point3D *point, Point3D *offset_centre){
+    float x = point->x;
+    float y = point->y;
+    float z = point->z;
+
+    transformFcoordsToDobotCoords(&x,&y,&z);
+    
+    return G3Command(x, y, z, offset_centre->x, offset_centre->y, offset_centre->z);
+}
+
+
+uint8_t Dobot::G3Command(float x, float y, float z, float i, float j, float k){
+    ARCCmd arc;
+    arc.cirPoint.x = x;
+    arc.cirPoint.x = y;
+    arc.cirPoint.x = z;
+    arc.cirPoint.r = 0;
+
+    float distAO = sqrt(i*i+j*j+k*k);
+    float distOM = sqrt(pow((-posPrecedente.x+x)/2-i, 2) + pow((-posPrecedente.y+y)/2-j, 2) + pow((-posPrecedente.z+z)/2-k, 2));
+    float l = distAO / distOM;
+
+    arc.toPoint.x = l * ((-posPrecedente.x+x)/2-i) + (posPrecedente.x + i);
+    arc.toPoint.y = l * ((-posPrecedente.y+y)/2-j) + (posPrecedente.y + j);
+    arc.toPoint.z = l * ((-posPrecedente.z+z)/2-k) + (posPrecedente.z + k);
+    arc.toPoint.r = 0;
+
+    Serial.print(F("pos precedente "));
+    Serial.print(F(" X "));
+    Serial.print(posPrecedente.x);
+    Serial.print(F(" Y "));
+    Serial.print(posPrecedente.y);
+    Serial.print(F(" Z "));
+    Serial.println(posPrecedente.z);
+
+    Serial.print(F("to point "));
+    Serial.print(F(" X "));
+    Serial.print(x);
+    Serial.print(F(" Y "));
+    Serial.print(y);
+    Serial.print(F(" Z "));
+    Serial.println(z);
+
+    Serial.print(F("circ point "));
+    Serial.print(F(" X "));
+    Serial.print(arc.cirPoint.x);
+    Serial.print(F(" Y "));
+    Serial.print(arc.cirPoint.y);
+    Serial.print(F(" Z "));
+    Serial.println(arc.cirPoint.z);
+    SetARCCmd(&_gSerialProtocolHandler, &arc, true);
+}
+
+uint8_t Dobot::isAccessible(float x, float y, float z){
+    Serial.print("X : ");
+    Serial.print(x);
+    Serial.print("Y : ");
+    Serial.println(y);
+    if(sqrt(x*x + y*y) > 270){//270 pour le benifice du doute
+        return ERR_OUT_OF_BOUND;
+    }
+    if(z < origin.z){
+        return ERR_TOO_DEEP;
+    }
+    return 0;
+
+}
+
+uint8_t Dobot::nextGCodeInstruction(){
     //temporaire
-    if(actualProgIndex==0){
+    /*if(actualProgIndex==0){
         actualProgIndex++;
         G0Command(100,100,100, false);
     } else if(actualProgIndex==1) {
@@ -447,17 +592,165 @@ int Dobot::nextGCodeInstruction(){
     } else if(actualProgIndex==3) {
         actualProgIndex++;
         G1Command(200,100,100);
-    }
-    /*
+    }*/
+    
     if(actualProgIndex<prog.num_blocks()){
-        GCodeInterpretation();
+        uint8_t err = GCodeInterpretation();
         actualProgIndex++;
-        return 0;
+        return err;
     } else {
         //programme terminé
         return 1;
     }
-    */
+    
+}
+
+uint8_t Dobot::GCodeInterpretation(){
+    float x=1000;
+    float y=1000;
+    float z=1000;
+    float i=0;
+    float j=0;
+    float k=0;
+
+
+    gcode::block b = prog.get_block(actualProgIndex);
+    switch (b.get_add(0).letter)
+    {
+    case 'G':
+        switch ((int) b.get_add(0).val)
+        {
+        case 0:
+            for(char i = 1;i<b.size();i++){
+                if(b.get_add(i).letter == 'X'){
+                    x = b.get_add(i).val;
+                }
+                if(b.get_add(i).letter == 'Y'){
+                    y = b.get_add(i).val;
+                }
+                if(b.get_add(i).letter == 'Z'){
+                    z = b.get_add(i).val;
+                }
+            }
+            //si inchangé (ex : G00 X164.687046 Y-43.752380 ;; z est inchangé)
+            if(x >= 950) {
+                x = posPrecedente.x;
+                Serial.println(F("pas de X dans ce block"));
+            }
+            if(y >= 950){
+                y = posPrecedente.y;
+                Serial.println(F("pas de Y dans ce block"));
+            }
+            if(z >= 950){
+                z = posPrecedente.z;
+                Serial.println(F("pas de Z dans ce block"));
+            }
+
+            
+            #if 1
+                Serial.println(F("avant matrice transfo :"));
+                Serial.print("X :");
+                Serial.print(x);
+                Serial.print(" Y :");
+                Serial.print(y);
+                Serial.print(" Z :");
+                Serial.println(z);
+            #endif
+
+            transformFcoordsToDobotCoords(&x, &y, &z);
+
+            #if 1
+            Serial.println(F("apres matrice transfo :"));
+                Serial.print("X :");
+                Serial.print(x);
+                Serial.print(" Y :");
+                Serial.print(y);
+                Serial.print(" Z :");
+                Serial.println(z);
+            #endif
+
+            return G0Command(x, y, z, true);
+
+            break;
+        case 1:
+            for(char i = 1;i<b.size();i++){
+                if(b.get_add(i).letter == 'X'){
+                    x = b.get_add(i).val;
+                }
+                if(b.get_add(i).letter == 'Y'){
+                    y = b.get_add(i).val;
+                }
+                if(b.get_add(i).letter == 'Z'){
+                    z = b.get_add(i).val;
+                }
+            }
+            if(x == 1000) x = posPrecedente.x;
+            if(y == 1000) x = posPrecedente.y;
+            if(z == 1000) x = posPrecedente.z;
+
+            transformFcoordsToDobotCoords(&x, &y, &z);
+
+
+            return G1Command(x, y, z);
+            break;
+        case 2:
+        case 3:
+            for(char i = 1;i<b.size();i++){
+                if(b.get_add(i).letter == 'X'){
+                    x = b.get_add(i).val;
+                }
+                if(b.get_add(i).letter == 'Y'){
+                    y = b.get_add(i).val;
+                }
+                if(b.get_add(i).letter == 'Z'){
+                    z = b.get_add(i).val;
+                }
+                if(b.get_add(i).letter == 'I'){
+                    i = b.get_add(i).val;
+                }
+                if(b.get_add(i).letter == 'J'){
+                    j = b.get_add(i).val;
+                }
+                if(b.get_add(i).letter == 'K'){
+                    k = b.get_add(i).val;
+                }
+            }
+            if(x == 1000) x = posPrecedente.x;
+            if(y == 1000) x = posPrecedente.y;
+            if(z == 1000) x = posPrecedente.z;
+
+            transformFcoordsToDobotCoords(&x, &y, &z);
+
+            return G3Command(x ,y, z, i, j, k);
+        
+        default:
+            break;
+        }
+        break;
+    
+    default:
+        //pas implementé pour le moment
+        break;
+    }
+    return 0;
+}
+
+void Dobot::updateProg(const char * program_text, uint16_t *index_program_text){
+    //verifier qu'il reste des carateres a parser
+    Serial.print("Valeur de actualprogindex :");
+    Serial.println(actualProgIndex);
+    if(*index_program_text >= strlen_P(program_text)) return;
+    while (actualProgIndex > 0)
+    {
+        actualProgIndex--;
+        prog.removeFirstBlock();
+    }
+    //verifier que le programme a moins de NB_BLOCKS_MAX
+    if(prog.num_blocks() >= NB_BLOCKS_MAX) return;
+    
+    gcode::parseNextN(&prog, program_text, index_program_text, NB_BLOCKS_MAX - prog.num_blocks());
+    Serial.println("Nouveau bloc parse");
+    
 }
 
 void Dobot::drawSegment(Point3D *Start, Point3D *End){
@@ -469,7 +762,23 @@ void Dobot::drawSegment(Point3D *Start, Point3D *End){
 
 
 void Dobot::idlePos(){
-    G0Command(75, 140, 35, false);
+    gPTPCmd.x = 75;
+    gPTPCmd.y = 140;
+    gPTPCmd.z = 35;
+    gPTPCmd.ptpMode = MOVJ_XYZ;
+    SetPTPCmd(1);
+}
+
+void Dobot::idleSafe(){
+    gPTPCmd.x = 70;
+    gPTPCmd.y = 0;
+    gPTPCmd.z = 0;
+    gPTPCmd.ptpMode = MOVJ_XYZ;
+    SetPTPCmd(1);
+    idlePos();
+}
+void Dobot::CorrectY(float *y){
+    *y = *y * 0.886567;
 }
 
 void Dobot::transformFcoordsToDobotCoords(float *x, float *y, float *z){
@@ -482,19 +791,79 @@ void Dobot::transformFcoordsToDobotCoords(float *x, float *y, float *z){
     *z = new_z;
 }
 
+void Dobot::facteurCorrectif(float *x, float *y){
+    Serial.print(F("ancieenne valeurs : x: "));
+    Serial.print(*x);
+    Serial.print(F(" y: "));
+    Serial.println(*y);
+    
+    float new_x = 0;
+    float new_y = 0;
+    if(_number == 0){
+        float a_x = *x * 0.0009 + 1.0014;
+        float b_x = *x * 0.0001 - 0.1267;
+
+        float a_y = *y * -0.0009 + 1.4419;
+        float b_y = *y * -0.0009 - 0.0599;
+
+        new_x = (*x-b_y)/a_y;
+        new_y = (*y-b_x)/a_x;
+    }
+
+    if(_number == 1){
+        float a_x = *x * 0.0008 + 0.9907;
+        float b_x = *x * -0.0013 - 0.0933;
+
+        float a_y = *y * -0.0009 + 1.6117;
+        float b_y = *y * 0.0012 + -0.3111;
+
+        new_x = (*x-b_y)/a_y;
+        new_y = (*y-b_x)/a_x;
+    }
+
+    if(_number == 2){
+        float a_x = *x * 0.0018 + 0.9214;
+        float b_x = *x * -0.0033 + 0.2333;
+
+        float a_y = *y * -0.0009 + 1.4434;
+        float b_y = *y * -0.0001 - 0.0978;
+
+        new_x = (*x-b_y)/a_y;
+        new_y = (*y-b_x)/a_x;
+    }
+    *x = new_x;
+    *y = new_y;
+    Serial.print(F("nouvelles valeurs : x: "));
+    Serial.print(*x);
+    Serial.print(F(" y: "));
+    Serial.println(*y);
+}
+
 void Dobot::danse() {
-    G0Command(160, 0, 128, false);
-    G0Command(140, 0, 172, false);
-    G0Command(140, 0, 100, false);
-    G0Command(191, 134, 77, false);
+    //G0Command(160, 0, 128, false);
+    //G0Command(140, 0, 172, false);
+    //G0Command(140, 0, 100, false);
+    //G0Command(191, 134, 77, false);
+    //ProtocolProcess();
+    //G0Command(66, 223, 69, false);
+    //G0Command(26.5, 100, 26.7, false);
+    //G0Command(150, 0, 145, false);
+    //G0Command(190, -160, 94, false);
+    //ProtocolProcess();
+    //G0Command(188, -97, -8, false);
+    //idlePos();
+
+    G0Command(164, 107, 97, false);
+    G0Command(158, -52, 154, false);
+    G0Command(142, -197, 16, false);
+    G0Command(14, -119, 61, false);
     ProtocolProcess();
-    G0Command(66, 223, 69, false);
-    G0Command(26.5, 100, 26.7, false);
-    G0Command(150, 0, 145, false);
-    G0Command(190, -160, 94, false);
-    ProtocolProcess();
-    G0Command(188, -97, -8, false);
+    G0Command(150, -157, 96, false);
+    G0Command(141, 0, 78, false);
+    G0Command(182, 148, 118, false);
     idlePos();
+    ProtocolProcess();
+
 }
 
 /*
@@ -513,10 +882,16 @@ void getPose(Pose *PoseParam){
 */
 
 
-void Dobot::goToPreviousPos(){
-    G0Command(posPrecedente.x, posPrecedente.y, posPrecedente.z, true);
-}
+uint8_t Dobot::goToPreviousPos(){
+    //si pas de pos precedente
+    if(posPrecedente.x >= 950 || posPrecedente.y >= 950 || posPrecedente.z >= 950)
+        return 0;
 
-void Dobot::storePreviousPos(void){
-    //a implementer 
+    float x = posPrecedente.x;
+    float y = posPrecedente.y;
+    float z = posPrecedente.z;
+
+    transformFcoordsToDobotCoords(&x ,&y, &z);
+
+    return G0Command(x, y ,z , true);
 }

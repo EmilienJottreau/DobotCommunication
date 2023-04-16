@@ -228,3 +228,19 @@ void SetPTPCommonParams(ProtocolHandler *_gSerialProtocolHandler, PTPCommonParam
 
     
 }
+
+
+void SetARCCmd(ProtocolHandler *_gSerialProtocolHandler, ARCCmd *arccmd, bool isQueued)
+{
+    Message tempMessage;
+
+    memset(&tempMessage, 0, sizeof(Message));
+    tempMessage.id = ProtocolARCCmd;
+    tempMessage.rw = true;
+    tempMessage.isQueued = isQueued;
+    tempMessage.paramsLen = sizeof(ARCCmd);
+    memcpy(tempMessage.params, (uint8_t *)arccmd, tempMessage.paramsLen);
+
+    MessageWrite(_gSerialProtocolHandler, &tempMessage);
+
+}

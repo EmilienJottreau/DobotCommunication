@@ -6,7 +6,7 @@
 #define DEBUG_PRINT 0
 
 
-#include <ctype.h>
+//#include <ctype.h>
 #include <avr/pgmspace.h>
 #include <HardwareSerial.h>
 
@@ -295,7 +295,7 @@ namespace gcode {
 
     }
 
-    vector<block> lex_gprog_char_20(const char* str, uint16_t* currentCharIndex) {
+    vector<block> lex_gprog_char_N(const char* str, uint16_t* currentCharIndex, uint8_t nb) {
         vector<block> blocks;
         #if DEBUG_PRINT
             Serial.print("valeur de currentcharindex : ");
@@ -353,7 +353,7 @@ namespace gcode {
                 Serial.println(*currentCharIndex);
             #endif
 
-            if (blocks.size() == 20) {
+            if (blocks.size() == nb) {
                 return blocks;
             }
             if(*currentCharIndex >= progmemStr_GetSize(str)){
@@ -406,13 +406,13 @@ namespace gcode {
         auto blocks = lex_gprog_char(char_gcode);
         return gcode_program(blocks);
     }
-    void parseNext20(gcode_program* prog, const char* char_gcode, uint16_t* index)
+    void parseNextN(gcode_program* prog, const char* char_gcode, uint16_t* index, uint8_t nb)
     {
         #if DEBUG_PRINT
             Serial.print("avant lex gprog char 20 taille : \n");
             Serial.println(prog->num_blocks());
         #endif
-        auto blocks = lex_gprog_char_20(char_gcode, index);
+        auto blocks = lex_gprog_char_N(char_gcode, index, nb);
         #if DEBUG_PRINT
             Serial.print("apres lex gprog char 20\n");
         for(block b:blocks){

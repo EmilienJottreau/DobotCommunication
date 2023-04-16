@@ -9,6 +9,7 @@
         "algorithm": "cpp",
         "wiring_private.h": "c",
         "cstdio": "cpp",
-        "istream_helpers": "cpp"
+        "istream_helpers": "cpp",
+        "vector": "cpp"
     }
 }

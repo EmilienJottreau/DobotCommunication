@@ -73,7 +73,7 @@ class Dobot{
         gcode::gcode_program prog;//inconnue
         uint8_t actualProgIndex;//1
 
-        Point3D posPrecedente;//12 (position en repere dobot)
+        Point3D posPrecedente;//12 (position en repere feuille)
         
         Dobot(DobotNumber number);
         void ProtocolInit(void);
@@ -108,8 +108,8 @@ class Dobot{
         void ClearAllAlarms();
         void StartQueueExec();
         void StopQueueExec();
+        void ForceStopQueueExec();
 
-        void storePreviousPos(void);
 
 
 
@@ -117,31 +117,46 @@ class Dobot{
         ** SYNCHRONIZATION function
         *********************************************************************************************************/
         bool available();
-        void goToPreviousPos();
+        uint8_t goToPreviousPos();
 
         /*********************************************************************************************************
         ** COMPLEX MOVEMENT function
         *********************************************************************************************************/
         void firstMove();
         void idlePos();
+        void idleSafe();
         void danse();
         void drawSegment(Point3D *Start, Point3D *End);
         /*********************************************************************************************************
         ** G-CODE function
         *********************************************************************************************************/
-       int nextGCodeInstruction();
-       //void GCodeInterpretation();
+        uint8_t nextGCodeInstruction();
+        uint8_t GCodeInterpretation();
 
 
-       void G0Command(float x, float y, float z, bool jump);
-       void G0Command(Point3D *point, bool jump);
-       void G1Command(float x, float y, float z);
-       void G1Command(Point3D *point);
+        uint8_t G0Command(float x, float y, float z, bool jump);
+        uint8_t G0Command(Point3D *point, bool jump);
+        uint8_t G1Command(float x, float y, float z);
+        uint8_t G1Command(Point3D *point);
+        uint8_t G3Command(float x, float y, float z, float i, float j, float k);
+        uint8_t G3Command(Point3D *point, Point3D *offset_centre);
+        //pour utiliser la fonction arc de dobot il faut connaitre un point sur le chemin et non le centre, 
+        //https://math.stackexchange.com/questions/176310/formula-for-calculating-the-center-of-an-arc
+        //peut etre un debut de solution
+
+        void updateProg(const char * program_text, uint16_t *index_program_text);
 
         /*********************************************************************************************************
         ** Compute function
         *********************************************************************************************************/
-       void transformFcoordsToDobotCoords(float *x, float *y, float *z);
+        void transformFcoordsToDobotCoords(float *x, float *y, float *z);
+        void facteurCorrectif(float *x, float *y);
+        void CorrectY(float *y);
+
+        /*********************************************************************************************************
+        ** verification function
+        *********************************************************************************************************/
+        uint8_t isAccessible(float x, float y, float z);
 
 
 };

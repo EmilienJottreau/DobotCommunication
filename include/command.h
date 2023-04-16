@@ -141,6 +141,23 @@ union {
  };
 } CPCmd;
 
+
+typedef struct tagARCCmd {
+    struct{
+        float x;
+        float y;
+        float z;
+        float r;
+    } cirPoint; //Any circular point
+    struct {
+        float x;
+        float y;
+        float z;
+        float r;
+    } toPoint; //Circular ending point
+} ARCCmd;
+
+
 /*********************************************************************************************************
 ** End effector function
 *********************************************************************************************************/
@@ -164,6 +181,10 @@ void SetPTPCoordinateParams(ProtocolHandler *_gSerialProtocolHandler, PTPCoordin
 void SetPTPJumpParams(ProtocolHandler *_gSerialProtocolHandler, PTPJumpParams *gptpJumpParams, bool isQueued);
 void SetPTPCommonParams(ProtocolHandler *_gSerialProtocolHandler, PTPCommonParams *gPTPCommonParams, bool isQueued);
 
+/*********************************************************************************************************
+** ARC function
+*********************************************************************************************************/
+void SetARCCmd(ProtocolHandler *_gSerialProtocolHandler, ARCCmd *arccmd, bool isQueued);
 
 #pragma pack(pop)
 

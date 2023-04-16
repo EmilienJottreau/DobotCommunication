@@ -33,21 +33,25 @@
 
 #define DEBUG 1
 
-#define HOME_PIN 52
-#define CLEAR_ALARM_PIN  40
-#define IDLE_PIN  48
-#define START_STOP_PIN 36
-#define SIMPLE_PIN1 32
-#define SIMPLE_PIN2 28
-#define SIMPLE_PIN3 24
-#define ENSEMBLE_PIN 25
-#define ORDO_PIN -1
+#define HOME_PIN 33
+#define IDLE_SAFE  41
+#define IDLE_PIN  37
+#define START_STOP_PIN 53
+#define SIMPLE_PIN1 52
+#define SIMPLE_PIN2 48
+#define SIMPLE_PIN3 44
+#define DANSE_PIN 40
 
-#define TESTGCODE 29
 
-#define DRAW 33
+//#define TESTGCODE 45
+#define ORDO_PIN 45
 
-#define STATUSLED 12
+#define DRAW_PIN 36
+#define DRAW_PIN_RANDOM 32
+
+#define STATUSLED 49
+
+#define SEMAPHORE_LIBRE 5
 
 
 
@@ -67,6 +71,7 @@ unsigned long previousActivation5=0;
 unsigned long previousActivation6=0;
 unsigned long previousActivation7=0;
 unsigned long previousActivation8=0;
+unsigned long previousActivation9=0;
 unsigned long previousHomeActivation=0;
 unsigned long previousStartStopActivation=0;
 unsigned long previousClearAlarm=0;
@@ -74,7 +79,13 @@ unsigned long previousClearAlarm=0;
 const unsigned int securityTime=1000;
 
 bool draw_enabled = false;
+bool draw_enabled_random = false;
 int draw_index=0;
+
+uint8_t r1;
+uint8_t r2;
+
+uint8_t done =0;
 
 Point3D A;
 Point3D B;
@@ -119,22 +130,26 @@ void clearQueue() {
   //printf("==Debut Interuption\n");
   //dobot1.ClearAllAlarms();
   Serial.println(F("#STOP & CLEAR QUEUE"));
-  dobot1.StopQueueExec(); // ca marche
+  dobot1.ForceStopQueueExec(); // ca marche
   dobot1.ClearDobotBuffer(0);
   dobot1.ClearAllAlarms();
   dobot1.StartQueueExec();
   dobot1.ProtocolProcess();
-  dobot2.StopQueueExec(); // ca marche
+  dobot2.ForceStopQueueExec(); // ca marche
   dobot2.ClearDobotBuffer(0);
   dobot2.ClearAllAlarms();
   dobot2.StartQueueExec();
   dobot2.ProtocolProcess();
-  dobot3.StopQueueExec(); // ca marche
+  dobot3.ForceStopQueueExec(); // ca marche
   dobot3.ClearDobotBuffer(0);
   dobot3.ClearAllAlarms();
   dobot3.StartQueueExec();
   dobot3.ProtocolProcess();
   stateStartStop = 1;
+
+  draw_enabled = false;
+  draw_enabled_random = false;
+  demo = false;
 
   //printf("==Fin Interuption (Clear Alarm 21, Stop command exec 241, clear dobot buffer 245, home 31)\n");
 }
@@ -190,6 +205,7 @@ void printf_begin(void) {
 ** Returned value:      none
 *********************************************************************************************************/
 void setup() {
+  randomSeed(millis());
   Serial.begin(115200);
   Serial1.begin(115200);
   Serial2.begin(115200);
@@ -200,10 +216,11 @@ void setup() {
   FlexiTimer2::start();
   pinSwitchPullUp(SIMPLE_PIN1);
   pinSwitchPullUp(SIMPLE_PIN2);
-  pinSwitchPullUp(ENSEMBLE_PIN);
+  pinSwitchPullUp(DANSE_PIN);
   pinSwitchPullUp(HOME_PIN);
   pinSwitchPullUp(START_STOP_PIN);
-  pinSwitchPullUp(CLEAR_ALARM_PIN);
+  pinSwitchPullUp(IDLE_PIN);
+  pinSwitchPullUp(IDLE_SAFE);
   pinMode(STATUSLED, OUTPUT);
 
   count = 0;
@@ -226,6 +243,9 @@ void setup() {
   dobot3.ProtocolProcess();
   Serial.println(F("FIN SETUP DOBOT 3!"));
   clearQueue();
+
+  r1 = random(0, 2);
+  r2 = random(0, 2);
   
   Serial.println(F("Test coords"));
 
@@ -270,19 +290,48 @@ void setup() {
   J.y = 134;
   J.z = 0;
 
-  /*Serial.print(F("memory free : "));
+  Serial.print(F("memory free : "));
   Serial.println(freeMemory());
   
   Serial.println(F("debut parse gcode 1"));
 
-  gcode::parseNext20(&dobot1.prog, robot_1, &index_robot_1);
+  //dobot1.updateProg(robot_1, &index_robot_1);
+  Serial.println(F("fin parse gcode 1"));
 
+  Serial.print(F("memory free : "));
+  Serial.println(freeMemory());
+  
+  Serial.println(F("debut parse gcode 2"));
 
+  index_robot_1 = 0;
+  //dobot2.updateProg(robot_1, &index_robot_1);
+  Serial.println(F("fin parse gcode 2"));
 
-  Serial.println(F("fin parse gcode 1"));*/
+  Serial.print(F("memory free : "));
+  Serial.println(freeMemory());
+  
+  Serial.println(F("debut parse gcode 3"));
 
-  Serial.print(F("taille du programme : "));
+  index_robot_1 = 0;
+  //dobot3.updateProg(robot_3, &index_robot_3);
+  Serial.println(F("fin parse gcode 3"));
+
+  Serial.print(F("memory free : "));
+  Serial.println(freeMemory());
+  
+  Serial.println(F("debut parse gcode 1"));
+
+  //dobot1.updateProg(robot_1, &index_robot_1);
+  Serial.println(F("fin parse gcode 1"));
+
+  Serial.print(F("taille du programme dobot 1: "));
   Serial.println(dobot1.prog.num_blocks());
+
+  Serial.print(F("taille du programme dobot 2: "));
+  Serial.println(dobot2.prog.num_blocks());
+
+  Serial.print(F("taille du programme dobot 3: "));
+  Serial.println(dobot3.prog.num_blocks());
 
 
   Serial.print(F("memory free : "));
@@ -338,6 +387,7 @@ void loop() {
   if(digitalReadMaison(SIMPLE_PIN2) && millis() - previousActivation2 > securityTime){
     previousActivation2 = millis();
     dobot2.firstMove();
+
     
     //printf("dobot 1 prochaine instruction\n");
     //dobot1.nextGCodeInstruction();
@@ -345,9 +395,29 @@ void loop() {
   if(digitalReadMaison(SIMPLE_PIN3) && millis() - previousActivation4 > securityTime){
     previousActivation4 = millis();
     dobot3.firstMove();
+    //dobot1.prog.printContent();
+    //dobot1.actualProgIndex++;
+    ////dobot1.updateProg(robot_1, &index_robot_1);
+    //Serial.print(F("Mermoire restante : "));
+    //Serial.println(freeMemory());
+    //Point3D o;
+    //o.x = 72.5828;
+    //o.y = 150.39;
+    //o.z = 0;
+    //dobot1.G0Command(&o, true);
+    //Point3D topoint;
+    //topoint.x = 98.282317;
+    //topoint.y = 144.519828;
+    //topoint.z = 0;
+    //Point3D circ;
+    //circ.x = 40.562991;
+    //circ.y = -34.795101;
+    //circ.z = 0;
+    //dobot1.G3Command(&topoint, &circ);
+    
   }
 
-  if(digitalReadMaison(ENSEMBLE_PIN) && millis() - previousActivation3 > securityTime){
+  if(digitalReadMaison(DANSE_PIN) && millis() - previousActivation3 > securityTime){
     previousActivation3 = millis();
     //dobot1.firstMove();
     //dobot2.firstMove();
@@ -356,44 +426,78 @@ void loop() {
     dobot2.danse();
     dobot3.danse();
 
-  }
-  //ca marche pas
-  if(digitalReadMaison(CLEAR_ALARM_PIN) && millis() - previousClearAlarm > securityTime){
-    previousClearAlarm = millis();
-    dobot1.ClearAllAlarms();
-    dobot2.ClearAllAlarms();
+
   }
 
-  if(digitalReadMaison(TESTGCODE) && millis() - previousActivation5 > securityTime){
-    previousActivation5 = millis();
-    dobot1.nextGCodeInstruction();
-    dobot2.nextGCodeInstruction();
-    dobot3.nextGCodeInstruction();
-  }
+
+  //if(digitalReadMaison(DEMO) && millis() - previousActivation5 > securityTime){
+  //  previousActivation5 = millis();
+  //}
   if(digitalReadMaison(IDLE_PIN) && millis() - previousActivation6 > securityTime){
     previousActivation6 = millis();
     dobot1.idlePos();
     dobot2.idlePos();
     dobot3.idlePos();
+
   }
 
-  if(digitalReadMaison(DRAW) && millis() - previousActivation7 > securityTime){
+  if(digitalReadMaison(DRAW_PIN_RANDOM) && millis() - previousActivation7 > securityTime){
     previousActivation7 = millis();
+    draw_enabled_random = true;
+  }
+  if(digitalReadMaison(DRAW_PIN) && millis() - previousActivation9 > securityTime){
+    previousActivation9 = millis();
     draw_enabled = true;
   }
 
-  if(draw_enabled && dobot1.available() && dobot2.available() && dobot3.available()){
-    drawNext(draw_index);
-    draw_index++;
+  if(digitalReadMaison(IDLE_SAFE) && millis() - previousActivation6 > securityTime){
+    previousActivation6 = millis();
+    dobot1.idleSafe();
+    dobot2.idleSafe();
+    dobot3.idleSafe();
+
   }
 
-  uint16_t nb_instruction[] = {dobot1.prog.num_blocks() + dobot2.prog.num_blocks() + dobot3.prog.num_blocks(), dobot1.prog.num_blocks(), dobot2.prog.num_blocks(), dobot3.prog.num_blocks()};
+  if(draw_enabled_random && dobot1.available() && dobot2.available() && dobot3.available()){
+    do{
+      draw_index = random(0, 8);
+    } while(((done >> draw_index) & 1) == 1);
+    done = done | (1 << draw_index);
+    Serial.print(done);
+    drawNext(draw_index);
+    if(done == 0xFF) {
+      draw_enabled_random = false;
+      draw_index=0;
+      done = 0;
+    }
+
+
+
+
+    Serial.print(F("Mermoire restante : "));
+    Serial.println(freeMemory());
+  }
+  if(draw_enabled && dobot1.available() && dobot2.available() && dobot3.available()){
+
+    drawNext(draw_index);
+    draw_index++;
+
+    if(draw_index == 8){
+      draw_index=0;
+      draw_enabled=false;
+    }
+
+    Serial.print(F("Mermoire restante : "));
+    Serial.println(freeMemory());
+  }
+
+  //uint16_t nb_instruction[] = {dobot1.prog.num_blocks() + dobot2.prog.num_blocks() + dobot3.prog.num_blocks(), dobot1.prog.num_blocks(), dobot2.prog.num_blocks(), dobot3.prog.num_blocks()};
   /*------------------------------------------------------------------------------
   dobot1.prog.num_blocks(); //Total
   dobot1.actualProgIndex; //Index auquel on est 
   dobot1.prog.num_blocks() - dobot1.actualProgIndex;  //ce qu'il nous reste
   ------------------------------------------------------------------------------*/
-  uint8_t ordo[nb_instruction[0]]; // tab de ordonnencement des dobots. Ex: [1,1,2,0,0,1,0,2,2,...]
+  /*uint8_t ordo[nb_instruction[0]]; // tab de ordonnencement des dobots. Ex: [1,1,2,0,0,1,0,2,2,...]
   if (digitalReadMaison(ORDO_PIN) && millis() - previousActivation8 > securityTime)
   {
     previousActivation8 = millis();
@@ -424,7 +528,6 @@ void loop() {
         index_ordo++;
       } while (ordo[index_ordo == ordo[index_ordo - 1]]);
       //dobots[ordo[index_ordo]].pose = dobots[ordo[index_ordo]].getPose(&dobot1.pose);
-      dobots[ordo[index_ordo]]->storePreviousPos(); //On prend la nouvelle position du robot
       dobots[ordo[index_ordo]]->idlePos();
     }
     if(semaphore == 0 && dobots[ordo[index_ordo]]->available())
@@ -434,11 +537,56 @@ void loop() {
         demo = false;
       }
     }
+  }*/
+  r1 = 0;//index 2 pour dobot 3
+  r2 = 0;
+  uint8_t err=0;
+  if (digitalReadMaison(ORDO_PIN) && millis() - previousActivation8 > securityTime)
+  {
+    previousActivation8 = millis();
+    demo ^= 1;
+    Serial.print(F("demo : "));
+    Serial.println(demo);
+    dobot1.idlePos();
+
+  }
+  if(demo){
+    if(semaphore != SEMAPHORE_LIBRE){
+      //occupé
+      if(dobots[semaphore]->available()) semaphore = SEMAPHORE_LIBRE;
+    }
+    if(semaphore == SEMAPHORE_LIBRE){
+        //dobot1.updateProg(robot_3, &index_robot_3);
+        Serial.print(F("Memory free :"));
+        Serial.println(freeMemory());
+        //revenir a la position precedente
+        err = dobots[r1]->goToPreviousPos();
+        Serial.print("previous pos : ");
+        Serial.println(err);
+        //continuer le programme
+        err = dobots[r1]->nextGCodeInstruction();
+        Serial.print("next gcode : ");
+        Serial.println(err);
+        //verrouille la semaphore
+        dobots[r1]->ProtocolProcess(); //je sais pas si il y a besoin
+        semaphore = r1;
+        if(r1 != r2){
+          dobots[r1]->idlePos();
+        }
+
+        r1 = r2;
+        r2 = random(0, 2);
+    }
+    if(err>0) demo=false;
   }
   
 
   //end of loop
   digitalWrite(STATUSLED,stateStartStop);
+
+  //dobot1.updateProg(robot_1, &index_robot_1);
+  //dobot2.updateProg(robot_2, &index_robot_2);
+  //dobot3.updateProg(robot_3, &index_robot_3);
  
 
   dobot1.GetQueuedCmdCurrentIndex(0,&dobot1.queuedCmdIndex);
@@ -467,7 +615,7 @@ void pinSwitchPullUp(unsigned char pin) {
 }
 
 void drawNext(int index){
-  if(index==0){
+  /*if(index==0){
     dobot2.drawSegment(&A, &C);
     dobot2.idlePos();
   } else if(index==1){
@@ -479,9 +627,8 @@ void drawNext(int index){
   } else if(index==3){
     dobot3.drawSegment(&D, &J);
     dobot3.drawSegment(&D, &F);
-    dobot3.ProtocolProcess();
-    dobot3.idlePos();
   } else if( index==4){
+    dobot3.idlePos();
     dobot2.drawSegment(&B, &H);
     dobot2.idlePos();
   } else if(index==5){
@@ -490,7 +637,36 @@ void drawNext(int index){
     dobot1.ProtocolProcess();
     dobot1.idlePos();
     draw_enabled = false;
-  }
+  }*/
+
+  if(index==0){
+    dobot2.drawSegment(&A, &C);
+    dobot2.idlePos();
+  } else if(index==1){
+    dobot3.drawSegment(&C, &E);
+    dobot3.idlePos();
+  } else if(index==2){
+    dobot1.drawSegment(&E, &G);
+    dobot1.idlePos();
+  } else if(index==3){
+    dobot2.drawSegment(&B, &I);
+    dobot2.idlePos();
+  } else if( index==4){
+    dobot3.drawSegment(&J, &D);
+    dobot3.idlePos();
+  } else if(index==5){
+    dobot2.drawSegment(&H, &B);
+    dobot2.idlePos();
+  } else if(index==6){
+    dobot1.drawSegment(&G, &A);
+    dobot1.idlePos();
+  } else if(index==7) {
+    dobot3.drawSegment(&D, &F);
+    dobot3.idlePos();
+    //draw_enabled = false;
+  } 
+
+  
 
 }
 
@@ -518,10 +694,6 @@ void InitRam(){
     gJOGCommonParams.velocityRatio = 100;
     gJOGCommonParams.accelerationRatio = 80;
 
-
-
-
-
     //Set PTP Model
     gPTPCoordinateParams.xyzVelocity = 100;
     gPTPCoordinateParams.rVelocity = 100;
@@ -530,8 +702,5 @@ void InitRam(){
 
     gPTPCommonParams.velocityRatio = 50;
     gPTPCommonParams.accelerationRatio = 50;
-
-
-
 
 }
