@@ -3,17 +3,17 @@
 #include <Arduino.h>
 
 namespace gcode {
-    class world_address_data {
+    class word_address_data {
     public:
         char letter;
         float val;
 
-        world_address_data() {
+        word_address_data() {
             letter = '\0';
             val = -1;
         }
 
-        world_address_data(char l, float f) : letter(l) {
+        word_address_data(char l, float f) : letter(l) {
             val = f;
         }
 
@@ -26,7 +26,7 @@ namespace gcode {
 
     class block {
     protected:
-        std::vector<world_address_data> addresses;
+        std::vector<word_address_data> addresses;
 
 
     public:
@@ -34,7 +34,7 @@ namespace gcode {
         uint8_t length;
 
         block():addresses({}){}
-        block(const std::vector<world_address_data> p_chunks) :
+        block(const std::vector<word_address_data> p_chunks) :
             addresses(p_chunks) {
         }
 
@@ -58,7 +58,7 @@ namespace gcode {
 
         int size() const { return addresses.size(); }
 
-        const world_address_data& get_add(const int i) {
+        const word_address_data& get_add(const int i) {
             if (i < size())
                 return addresses[i];
             else
@@ -66,17 +66,17 @@ namespace gcode {
         }
 
         void printContent(){
-            for(world_address_data w:addresses){
+            for(word_address_data w:addresses){
                 w.printContent();
             }
         }
 
 
-        std::vector<world_address_data>::const_iterator begin() const { return std::begin(addresses); }
-        std::vector<world_address_data>::const_iterator end() const { return std::end(addresses); }
+        std::vector<word_address_data>::const_iterator begin() const { return std::begin(addresses); }
+        std::vector<word_address_data>::const_iterator end() const { return std::end(addresses); }
 
-        std::vector<world_address_data>::iterator begin() { return std::begin(addresses); }
-        std::vector<world_address_data>::iterator end() { return std::end(addresses); }
+        std::vector<word_address_data>::iterator begin() { return std::begin(addresses); }
+        std::vector<word_address_data>::iterator end() { return std::end(addresses); }
 
 
 

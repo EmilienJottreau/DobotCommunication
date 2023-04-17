@@ -68,7 +68,7 @@ namespace gcode {
         Serial.print("taille du vecteur token : ");
         Serial.println(nb_token);
         #endif
-        vector<world_address_data> addresses;
+        vector<word_address_data> addresses;
         parse_slash(&tokens[current_token][0], &current_token); //check if line is slashed, ca nous sert a rien je pense
 
 
@@ -84,7 +84,7 @@ namespace gcode {
                     Serial.print(c);
                     Serial.println(f);
                 #endif
-                addresses.push_back(world_address_data(c, f));
+                addresses.push_back(word_address_data(c, f));
                 length++;
 
             }
