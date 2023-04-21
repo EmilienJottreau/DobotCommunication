@@ -1,5 +1,3 @@
-//#pragma warning(disable : 4996)
-
 #include "parser.h"
 
 #define ARDUINO_PROGMEM 1
@@ -58,9 +56,6 @@ namespace gcode {
 
         if (tokens.size() == 0) { return block(); }
 
-        //parse_stream<string> s(tokens);
-
-
         uint8_t nb_token = tokens.size();
         uint8_t current_token = 0;
         uint8_t length = 0;
@@ -93,7 +88,7 @@ namespace gcode {
             }
 
         }
-        //tokens.clear();
+
         block b = block(addresses);
         b.length = length;
         #if DEBUG_PRINT
@@ -187,7 +182,6 @@ namespace gcode {
 
     std::vector<std::string> lex_block(std::string& block_text) { //lex peut vouloir dire lexical
         //block_text <=> one line
-        //parse_state s(block_text);
         uint16_t line_size = block_text.length();
         uint16_t currentchar = 0;
 
@@ -199,10 +193,7 @@ namespace gcode {
             ignore_whitespace(&block_text[0], &currentchar, line_size);
 
             if (chars_left(currentchar, line_size)) {
-                //on increment dans lex_token le suivant
-                //moyen d'opti la fonction et d'ignorer les commentaires et de renvoyer un char
-                //parce que la ce qui est fait, c'est separer en token "propres" apres a voir dans le dev avec les floats
-                string token = lex_token(&block_text[0], &currentchar, line_size);
+                 string token = lex_token(&block_text[0], &currentchar, line_size);
                 tokens.push_back(token);
             }
         }
@@ -210,8 +201,6 @@ namespace gcode {
         return tokens;
     }
     std::vector<std::string> lex_block_char(const char* line, uint8_t size) {
-        //temporaire
-        //convert char * to string
         std::string lineString(line, size);
         #if DEBUG_PRINT
             Serial.print("taille de la chaine line dans lex_block_char ");
@@ -386,9 +375,6 @@ namespace gcode {
                 }
             }
 
-            //if (blocks.size() == 100) {
-            //    return blocks;
-            //}
 
             line_start += line.size() + 1;
         }

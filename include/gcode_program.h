@@ -101,14 +101,12 @@ namespace gcode {
                 return blocks[0];
         }
 
-        void removeFirstBlock() {
-            //std::move(blocks.back());
+        void removeFirstBlock() { //le probleme G-code vient surement de cette fonction
+
             for(uint8_t i = 0 ;i < num_blocks()-1;i++){
                 blocks[i] = blocks[i+1];
             }
 
-            //std::rotate(blocks.begin(), blocks.begin() + 1, blocks.end() );
-            //free(&blocks.back());
             blocks.pop_back();
         }
 

@@ -10,6 +10,10 @@
         "wiring_private.h": "c",
         "cstdio": "cpp",
         "istream_helpers": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "associative_base": "cpp",
+        "bitset": "cpp",
+        "map": "cpp",
+        "set": "cpp"
     }
 }

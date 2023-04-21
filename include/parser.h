@@ -5,10 +5,6 @@
 #include "gcode_program.h"
 
 
-
-
-
-
 namespace gcode {
 
 	gcode_program parse_gcode(const std::string& program_text);

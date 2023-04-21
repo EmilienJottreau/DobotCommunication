@@ -56,7 +56,6 @@ Dobot::Dobot(DobotNumber number){
         #else
         origin.z = -53;
         #endif
-        //origin.z = -20;
         origin.theta = degToRad(120);
     }
     idPrecedent = 0;
@@ -77,10 +76,7 @@ void Dobot::ProtocolInit(){
     RingBufferInit(&_gSerialProtocolHandler.rxPacketQueue, gSerialRXPacketBuffer, PACKET_BUFFER_SIZE, sizeof(Packet));
 }
 
-/*void Dobot::ProtocolProcess(){
-    return;
-}
-*/
+
 
 void Dobot::ProtocolProcess(){
     Message message;
@@ -101,7 +97,7 @@ void Dobot::ProtocolProcess(){
         }
         if(MessageRead(&_gSerialProtocolHandler, &message)==ProtocolNoError){
             #if 1
-            if(message.id==0) return; //ca bug si on fait pas return potentielmement probleme reglé / on peut l'enlever
+            if(message.id==0) return; 
             if(    message.id == 246 
                 || message.id == ProtocolJOGCommonParams 
                 || message.id == ProtocolJOGCoordinateParams
@@ -117,13 +113,12 @@ void Dobot::ProtocolProcess(){
                 for(int i=0; i<message.paramsLen; i++)
                 {
                     printf("%02x ", message.params[i]);
-                    //if(i>20) printf("message param len : %d + message.id : %d\n", message.paramsLen, message.id);
                 }
                 Serial.println(F("]"));
             }
             if(message.id == 245){
                 //clear queue
-                for(int i =0;i<instructionsQueue.size();i++){
+                for(size_t i =0;i<instructionsQueue.size();i++){
                     instructionsQueue.pop_back();
                 }
             }
@@ -131,29 +126,13 @@ void Dobot::ProtocolProcess(){
             if(message.id == 246) {
                 queuedCmdIndex = param;
 
-                //for(int i=0; i<message.paramsLen; i++)
-                //{
-                //    printf("%02x ", queuedCmdIndex >> 8*i);
-                //}
-                //printf("\n");
-
-                //a virer apres le debug
-                #if 0
-                    Serial.print(F("Dobot "));
-                    Serial.print(_number+1);
-                    Serial.print(F(" instruction queue len : "));
-                    Serial.println(instructionsQueue.size());
-                #endif
-                //printf("Dobot %d  instruction queue len : %d\n", _number+1, instructionsQueue.size());
-
+                
                 int index=-1;
-                for(int i=0; i<instructionsQueue.size(); i++){
+                for(size_t i=0; i<instructionsQueue.size(); i++){
                     if(instructionsQueue[i] == param) index = i;
                 }
                 for (int i = 0; i <= index; i++)
                 {
-                    //printf("  instruction queue len : %d\n", instructionsQueue.size());
-                    //printf("*Instruction %08x termine\n",instructionsQueue[0]);
                     Serial.print(F("*Instruction "));
                     printf("%08x", instructionsQueue[0]);
                     Serial.println(F(" termine"));
@@ -162,13 +141,10 @@ void Dobot::ProtocolProcess(){
                         Serial.print(F("=> DOBOT "));
                         Serial.print(_number+1);
                         Serial.println(F(" PRET"));
-                        //printf("=> DOBOT %d PRET\n",_number+1);
                     }
                 }
                 
                 
-            } else{
-                //instructionsQueue.push_back(param);
             }
 
             param246Precedent = param;
@@ -536,7 +512,7 @@ uint8_t Dobot::G3Command(float x, float y, float z, float i, float j, float k){
     arc.toPoint.y = l * ((-posPrecedente.y+y)/2-j) + (posPrecedente.y + j);
     arc.toPoint.z = l * ((-posPrecedente.z+z)/2-k) + (posPrecedente.z + k);
     arc.toPoint.r = 0;
-
+#if 0
     Serial.print(F("pos precedente "));
     Serial.print(F(" X "));
     Serial.print(posPrecedente.x);
@@ -560,6 +536,7 @@ uint8_t Dobot::G3Command(float x, float y, float z, float i, float j, float k){
     Serial.print(arc.cirPoint.y);
     Serial.print(F(" Z "));
     Serial.println(arc.cirPoint.z);
+#endif
     SetARCCmd(&_gSerialProtocolHandler, &arc, true);
 }
 
@@ -568,7 +545,7 @@ uint8_t Dobot::isAccessible(float x, float y, float z){
     Serial.print(x);
     Serial.print("Y : ");
     Serial.println(y);
-    if(sqrt(x*x + y*y) > 270){//270 pour le benifice du doute
+    if(sqrt(x*x + y*y) > 270){ //on peut surement avoir une valeur plus precise
         return ERR_OUT_OF_BOUND;
     }
     if(z < origin.z){
@@ -579,20 +556,6 @@ uint8_t Dobot::isAccessible(float x, float y, float z){
 }
 
 uint8_t Dobot::nextGCodeInstruction(){
-    //temporaire
-    /*if(actualProgIndex==0){
-        actualProgIndex++;
-        G0Command(100,100,100, false);
-    } else if(actualProgIndex==1) {
-        actualProgIndex++;
-        G1Command(150,100,150);
-    } else if(actualProgIndex==2) {
-        actualProgIndex++;
-        G1Command(100,150,100);
-    } else if(actualProgIndex==3) {
-        actualProgIndex++;
-        G1Command(200,100,100);
-    }*/
     
     if(actualProgIndex<prog.num_blocks()){
         uint8_t err = GCodeInterpretation();
@@ -693,7 +656,7 @@ uint8_t Dobot::GCodeInterpretation(){
 
             return G1Command(x, y, z);
             break;
-        case 2:
+        case 2: //pas fonctionnel
         case 3:
             for(char i = 1;i<b.size();i++){
                 if(b.get_add(i).letter == 'X'){
@@ -737,7 +700,7 @@ uint8_t Dobot::GCodeInterpretation(){
 
 void Dobot::updateProg(const char * program_text, uint16_t *index_program_text){
     //verifier qu'il reste des carateres a parser
-    Serial.print("Valeur de actualprogindex :");
+    Serial.print(F("Valeur de actualprogindex :"));
     Serial.println(actualProgIndex);
     if(*index_program_text >= strlen_P(program_text)) return;
     while (actualProgIndex > 0)
@@ -749,7 +712,7 @@ void Dobot::updateProg(const char * program_text, uint16_t *index_program_text){
     if(prog.num_blocks() >= NB_BLOCKS_MAX) return;
     
     gcode::parseNextN(&prog, program_text, index_program_text, NB_BLOCKS_MAX - prog.num_blocks());
-    Serial.println("Nouveau bloc parse");
+    Serial.println(F("Nouveau bloc parse"));
     
 }
 
@@ -757,7 +720,6 @@ void Dobot::drawSegment(Point3D *Start, Point3D *End){
     G0Command(Start, true);
     G1Command(End);
 }
-
 
 
 
@@ -777,6 +739,7 @@ void Dobot::idleSafe(){
     SetPTPCmd(1);
     idlePos();
 }
+
 void Dobot::CorrectY(float *y){
     *y = *y * 0.886567;
 }
@@ -792,6 +755,7 @@ void Dobot::transformFcoordsToDobotCoords(float *x, float *y, float *z){
 }
 
 void Dobot::facteurCorrectif(float *x, float *y){
+    //non fonctionnel
     Serial.print(F("ancieenne valeurs : x: "));
     Serial.print(*x);
     Serial.print(F(" y: "));
@@ -840,18 +804,6 @@ void Dobot::facteurCorrectif(float *x, float *y){
 }
 
 void Dobot::danse() {
-    //G0Command(160, 0, 128, false);
-    //G0Command(140, 0, 172, false);
-    //G0Command(140, 0, 100, false);
-    //G0Command(191, 134, 77, false);
-    //ProtocolProcess();
-    //G0Command(66, 223, 69, false);
-    //G0Command(26.5, 100, 26.7, false);
-    //G0Command(150, 0, 145, false);
-    //G0Command(190, -160, 94, false);
-    //ProtocolProcess();
-    //G0Command(188, -97, -8, false);
-    //idlePos();
 
     G0Command(164, 107, 97, false);
     G0Command(158, -52, 154, false);
@@ -866,20 +818,6 @@ void Dobot::danse() {
 
 }
 
-/*
-void getPose(Pose *PoseParam){
-    Message tempMessage;
-
-    memset(&tempMessage, 0, sizeof(Message));
-    tempMessage.id = ProtocolGetPose;
-    tempMessage.rw = false;
-    tempMessage.isQueued = 0;
-    tempMessage.paramsLen = sizeof(PoseParam);
-    memcpy(tempMessage.params, (uint8_t *)PoseParam, tempMessage.paramsLen);
-
-    MessageWrite(&_gSerialProtocolHandler, &tempMessage);
-}
-*/
 
 
 uint8_t Dobot::goToPreviousPos(){

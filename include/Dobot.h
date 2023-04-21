@@ -61,9 +61,6 @@ class Dobot{
         HardwareSerial* _serial;//4?
         ProtocolHandler _gSerialProtocolHandler;//336
 
-        //attributes related to movement
-
-
         PTPCmd gPTPCmd;//17
         JOGCmd gJOGCmd;//2
         CPCmd gCPCmd;//17
@@ -138,11 +135,8 @@ class Dobot{
         uint8_t G0Command(Point3D *point, bool jump);
         uint8_t G1Command(float x, float y, float z);
         uint8_t G1Command(Point3D *point);
-        uint8_t G3Command(float x, float y, float z, float i, float j, float k);
+        uint8_t G3Command(float x, float y, float z, float i, float j, float k); // pas fonctionnel
         uint8_t G3Command(Point3D *point, Point3D *offset_centre);
-        //pour utiliser la fonction arc de dobot il faut connaitre un point sur le chemin et non le centre, 
-        //https://math.stackexchange.com/questions/176310/formula-for-calculating-the-center-of-an-arc
-        //peut etre un debut de solution
 
         void updateProg(const char * program_text, uint16_t *index_program_text);
 
